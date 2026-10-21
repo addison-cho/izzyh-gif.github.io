@@ -1,41 +1,638 @@
-const FACTORS=['Intervention potential','Existing toolkit fit','Delivery capacity','Expansion feasibility','Evidence strength'];
-const SOURCES={
- grants:['PNC · Homebuyer grants','https://www.pnc.com/en/personal-banking/borrowing/home-lending/mortgage-loans/down-payment-assistance.html','Current published programs; individual, property, income and assessment-area restrictions apply.'],
- community:['PNC · Community Loan','https://www.pnc.com/en/personal-banking/borrowing/home-lending/mortgage-loans/specialized-loan-rates.html','As little as 3% down; no PMI; minimal reserves for qualifying applicants.'],
- hardship:['PNC · Lending hardship assistance','https://www.pnc.com/en/customer-service/client-resource.html','Existing mortgage customers: repayment, forbearance, deferral or modification, subject to loan and investor rules.'],
- capital:['PNC · Multifamily Capital','https://www.pnc.com/en/corporate-and-institutional/financing/lending-options/pnc-real-estate/multifamily-capital.html','National financing capability, including construction, preservation and tax-credit equity. Not a funding commitment.'],
- cdb:['PNC · Community Development Banking','https://www.pnc.com/en/about-pnc/corporate-responsibility/community-dev-banking.html','Affordable development, rehabilitation, nonprofit credit and community partnerships.'],
- sonoma:['Sonoma County · Housing strategy staff report','https://sonoma-county.legistar.com/LegislationDetail.aspx?GUID=70051F65-04A5-480D-9E10-C50EBBD0297A&ID=5745185&Options=&Search=','County housing strategy; findings about unincorporated areas do not establish conditions in every municipality.'],
- fire:['Sonoma County · 2018 Recovery Framework','https://sonomacounty.gov/Main%20County%20Site/Administrative%20Support%20%26%20Fiscal%20Services/Emergency%20Management/Documents/Archive/Documents/12-11-2018%20CAO%20Recovery%20Framework%20Adoption_AttA_English_Fully%20Remediated.pdf','Approximately 5,143 homes destroyed countywide in October 2017. Historical shock; current unreplaced deficit unknown.'],
- abq:['Albuquerque · Housing strategy','https://www.cabq.gov/mayor/news/albuquerque-charts-course-to-confront-housing-crisis','City evidence on supply, housing types and delivery constraints; geographic scope narrower than Bernalillo County.'],
- bucks:['Bucks County · Draft 2025–29 Consolidated Plan','https://www.buckscounty.gov/DocumentCenter/View/21304/Bucks-County-2025-2029-Consolidated-Plan-and-2025-Action-Plan-Draft-for-Public-Review','Draft, printed pp. 71, 83, 97–98: land, zoning, development costs, savings and credit obstacles.'],
- lafayette:['Lafayette · 2023–27 Consolidated Plan','https://www.lafayettela.gov/media/sp0h1j3j/lcg-2023-2027-consolidated-plan-and-2023-annual-action-plan.pdf','Printed p. 78 identifies inadequate funding as greatest barrier; does not identify public-policy barriers.'],
- rehab:['Lafayette · Housing assistance','https://www.lafayettela.gov/living-here/housing/','Current housing page and 2026 draft action plan differ on flood-zone rehabilitation eligibility; confirm rules before referral.'],
- flood:['Lafayette Parish · Hazard Mitigation Plan','https://www.lafayettela.gov/media/ojkbmarb/lafayette-parish-hm-plan.pdf','Historical flood exposure and recovery evidence; no causal estimate for the supplied denial-rate gap.']};
-const PLANS=[
- {title:'Finance affordable supply & preservation',tag:'Supply + preservation',ratings:[4,4,2,3,3],requirements:[3,2,3],evidence:'Moderate · documented local constraints',barrier:'High development costs and constrained affordable supply',mechanism:'Pair PNC affordable-housing finance and LIHTC equity with an experienced developer or nonprofit to preserve existing rental homes or finance an entitled affordable project.',limits:'Financing can address a viable project’s capital gap. PNC cannot independently remove growth boundaries, guarantee entitlements, or eliminate construction costs.',notes:['Project finance can enable units, but incremental impact depends on an identified financing gap.','PNC publishes affordable housing debt, tax-credit equity and preservation capabilities.','High capital and longer project schedules; capacity is scenario-based.','Partner-led delivery is plausible; entitlements and sponsor capacity remain unknown.','County strategy supports constraints; exact contribution to peer divergence is unproven.'],barriers:[['Affordable supply pressure','Supplied case shows 0.58 affordable units per LMI household versus 1.38 in Lake. This is an availability proxy, not a vacancy or applicant-level measure.'],['Development and preservation constraints','County housing strategy supports funding and supply interventions. Verify site-level costs, approvals and affordability covenants.'],['Historical wildfire losses','2017 fires destroyed about 5,143 homes countywide. Do not treat that historical loss as today’s unreplaced housing deficit.']],sources:['sonoma','fire','capital','cdb','hardship'],partner:'County housing staff, affordable-housing developer, CDFI and local housing counselor',kpi:'Affordable units preserved/created, years of restrictions, cost per unit and households served at ≤80% AMI',secondary:'Offer mortgage hardship review to eligible existing PNC borrowers experiencing payment distress; screen eligibility separately from the development project.'},
- {title:'Build a partner-led affordable housing pipeline',tag:'Supply + delivery',ratings:[4,4,3,3,3],requirements:[3,3,3],evidence:'Moderate · city evidence; county scope uncertain',barrier:'Insufficient housing supply and delivery capacity',mechanism:'Use a nonprofit or experienced developer pipeline to identify affordable rental rehabilitation or construction opportunities, then evaluate PNC development finance and tax-credit equity.',limits:'Albuquerque evidence does not automatically describe all Bernalillo County. Construction workforce, subsidy availability and project approvals may constrain delivery.',notes:['Additional restricted units can address supply, subject to feasible project economics.','PNC offers relevant development and affordable rental financing.','Pipeline work needs sustained partner coordination, capital and time.','Local developer relationships and delivery capabilities must be established.','Official city evidence supports the mechanism; county attribution remains uncertain.'],barriers:[['Affordability pressure','Supplied home value is 4.04× household income versus 2.65× in Monroe County. The metric omits interest, taxes and insurance.'],['Housing supply and housing types','Albuquerque housing strategy documents supply and delivery constraints. Identify the relevant submarket before selecting a project.'],['Workforce and execution capacity','Delivery depends on local construction and sponsor capacity; finance alone may be insufficient.']],sources:['abq','capital','cdb','hardship'],partner:'Albuquerque/Bernalillo housing teams, experienced developer, local CDFI and housing counselor',kpi:'Underwritten project pipeline, restricted units financed, delivery milestones and affordability duration',secondary:'Use homebuyer grants or Community Loan only after household/property eligibility is confirmed; demand subsidies alone do not resolve supply constraints.'},
- {title:'Pair homebuyer readiness with housing preservation',tag:'Access + preservation',ratings:[3,4,4,4,3],requirements:[2,2,2],evidence:'Moderate · draft local-plan evidence',barrier:'Upfront cash barriers and limited starter supply',mechanism:'Combine eligible PNC homebuyer assistance with nonprofit counseling and acquisition/rehabilitation partnerships to expand access to preserved starter housing.',limits:'Bucks has a lower overall denial rate than Burlington in the supplied data. Do not describe aggregate denials as the access driver. Grants require address, income and product eligibility checks.',notes:['Assistance can reduce upfront cash needs; preservation addresses stock more directly.','PNC grants, Community Loan and nonprofit rehab credit are relevant published tools.','Pilot can begin through partners, with actual resources still unverified.','Existing-tool delivery is plausible; assessment-area and municipal checks remain.','Local draft plan documents barriers, but causal importance is unmeasured.'],barriers:[['Starter-stock access','Supplied affordable-units ratio is 0.97 versus 1.28 in Burlington. The proxy does not establish actual availability to individual households.'],['Savings and credit readiness','County draft plan identifies down-payment savings, debt and credit obstacles. Applicant-level diagnosis is still required.'],['Land and development constraints','Draft county plan describes limited land and zoning-related constraints. Banks can finance approved projects and partners, but cannot change municipal rules alone.']],sources:['bucks','grants','community','cdb','hardship'],partner:'HUD-approved housing counselor, nonprofit rehab/acquisition partner, county and municipal housing teams',kpi:'Eligible referrals, completed counseling, sustainable closings, units preserved and 12-month delinquency',secondary:'Mortgage hardship assistance supports qualifying existing PNC borrowers at risk of displacement; it is a retention tool, separate from purchase access.'},
- {title:'Launch a credit-readiness & retention pilot',tag:'Access + household resilience',ratings:[3,3,4,3,2],requirements:[2,2,2],evidence:'Limited · denial mechanism unresolved',barrier:'Elevated mortgage denials with unverified causes',mechanism:'Start with a HMDA denial-reason and loan-composition review, then partner with housing counselors for readiness support and eligible PNC products. Add hardship referrals for existing borrowers facing payment stress.',limits:'A 25.8% aggregate denial rate does not establish discrimination, thin-file credit or down-payment shortfalls. Do not launch a new underwriting policy without validating the mechanism and approvals.',notes:['Readiness support helps only if diagnosed denial reasons are addressable.','PNC counseling partnerships and mortgage tools are relevant; underwriting changes are not assumed.','A bounded diagnostic/referral pilot has lower delivery demands than construction.','New underwriting or products require risk, compliance and investor approvals.','Official plan supports funding needs, but causes of the supplied denial gap remain unknown.'],barriers:[['Elevated aggregate denials','Supplied purchase denial rate is 25.8% versus 15.2% in El Paso. Loan counts, reasons and applicant composition were not supplied.'],['Funding and preservation needs','Official consolidated plan identifies inadequate funding as its greatest barrier. Local rehabilitation programs exist and have eligibility limits.'],['Flood and ownership-cost exposure','Flood recovery supports a resilience hypothesis. Insurance, debt-to-income effects and links to denial rates need current local data.']],sources:['lafayette','rehab','flood','cdb','community','hardship','grants'],partner:'Local housing counselor, parish housing staff, PNC servicing and mortgage teams, CDFI',kpi:'Denial-reason coverage, eligible households referred, readiness completion, closings and retention outcomes',secondary:'Hardship options may include repayment, forbearance, deferral or modification for eligible existing mortgage customers. Flood-zone rehabilitation rules must be confirmed before referral.'}
-];
-let weights=[20,20,20,20,20],selected=2,filter='all',tab='overview';
-const $=id=>document.getElementById(id);const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function scenario(){return ['budget','staff','horizon'].map(k=>Number($(k).value))}
-function ratings(i){const p=PLANS[i],r=p.ratings.slice(),s=scenario();r[2]=Math.max(1,Math.min(5,4+p.requirements.reduce((sum,need,j)=>sum+Math.sign(s[j]-need),0)/2));if(p.requirements.some((need,j)=>s[j]<need))r[2]=Math.min(r[2],2);const priority=$('priority').value;r[3]=Math.max(1,Math.min(3,r[3]+(priority==='balanced'?0:(priority==='supply')===(i<2)?1:-1))); return r}
-function score(i){let total=weights.reduce((a,b)=>a+b,0);return total?Math.round(ratings(i).reduce((s,v,j)=>s+v/5*weights[j],0)/total*100):null}
-function scoreText(i){return score(i)===null?'—':score(i)}
-function source(k){const s=SOURCES[k];return `<div class="source"><a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])} ↗</a><br>${esc(s[2])}</div>`}
-function renderWeights(){ $('weights').innerHTML=FACTORS.map((f,i)=>`<div class="weight"><label for="w${i}">${f}</label><input id="w${i}" aria-label="${f} weight" type="range" min="0" max="100" step="5" value="${weights[i]}"><output for="w${i}" id="o${i}">${weights[i]}</output></div>`).join('');weights.forEach((_,i)=>$('w'+i).oninput=e=>{weights[i]=+e.target.value;$('o'+i).textContent=weights[i];render()})}
-function render(){const sorted=CASES.map((c,i)=>({c,i,s:score(i)})).filter(x=>filter==='all'||x.c.label.toLowerCase().includes(filter)).sort((a,b)=>(b.s??-1)-(a.s??-1));if(!sorted.some(x=>x.i===selected))selected=sorted[0]?.i??0;$('cards').innerHTML=sorted.map((x,j)=>`<button class="card ${selected===x.i?'active':''}" data-case="${x.i}" aria-pressed="${selected===x.i}"><div class="eyebrow">${x.c.label}</div><span class="rank">0${j+1}</span><h3>${esc(x.c.target.split(',')[0])}</h3><div class="state">${esc(x.c.target.split(',')[1].trim())} · ${PLANS[x.i].tag}</div><div class="score">${scoreText(x.i)} <small>/ 100</small></div><div class="desc">Scenario match · provisional<br>${PLANS[x.i].evidence}</div></button>`).join('');document.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{selected=+b.dataset.case;render()});renderDetail()}
-function renderDetail(){const c=CASES[selected],p=PLANS[selected];$('detail').innerHTML=`<section class="detail"><div class="detail-head"><div><div class="eyebrow">SELECTED OPPORTUNITY · ${c.label}</div><h2>${c.target}</h2><p>${p.title}<br>Compared with ${c.reference}; all five peers shown below.</p></div><div><div class="score">${scoreText(selected)}<small> /100</small></div><span class="badge amber">Conditional match</span></div></div><div class="tabs">${[['overview','Opportunity'],['peers','Peer comparison'],['action','Action plan'],['score','Score breakdown'],['evidence','Sources & evidence']].map(([id,n])=>`<button data-tab="${id}" class="${tab===id?'active':''}">${n}</button>`).join('')}</div><div class="panel" id="panel"></div></section>`;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderDetail()});const target=c.peers[3],ref=c.peers[1];
-if(tab==='overview')$('panel').innerHTML=`<div class="two-col"><div><span class="badge">${p.evidence}</span><h3>${p.barrier}</h3><p class="body">${p.mechanism}</p><div class="metric-row"><div class="metric"><strong>${target.affordability}</strong><span>Affordability burden score<br>Peer: ${ref.affordability}</span></div><div class="metric"><strong>${target.access}</strong><span>Access burden score<br>Peer: ${ref.access}</span></div><div class="metric"><strong>${target.units}</strong><span>Affordable units / LMI HH<br>Peer: ${ref.units}</span></div></div><p class="small">Supplied case indicators. Higher burden scores indicate worse outcomes. These are distinct from the institution match score.</p>${p.barriers.map(([h,t])=>`<div class="barrier"><h3>${h}</h3><p>${t}</p></div>`).join('')}</div><div><div class="callout"><strong>What needs to be true</strong><br>${p.limits}</div><h3>Hardship & complementary support</h3><p class="body">${p.secondary}</p><h3>Readiness check</h3><ul class="list"><li>Local program and household eligibility: unverified</li><li>Partner availability and sponsor capacity: unverified</li><li>Budget, staffing and approvals: illustrative</li><li>Expected incremental impact: not estimated</li></ul><span class="badge amber">Validate before implementation</span></div></div>`;
-if(tab==='peers')$('panel').innerHTML=`<h3>${c.label} · supplied five-county group</h3><p class="body">The focal comparison is preserved from the supplied analysis. The other axis also diverges: ${c.label.includes('affordability')?'access':'affordability'} burden differs by ${Math.abs((c.label.includes('affordability')?target.access:target.affordability)-(c.label.includes('affordability')?ref.access:ref.affordability)).toFixed(1)} points. No “low divergence” threshold was supplied.</p><div class="table-wrap"><table><thead><tr><th>Community</th><th>Population / income</th><th>Affordability ↑</th><th>Access burden ↑</th><th>Home value / income</th><th>Purchase denials</th><th>Units / LMI HH</th></tr></thead><tbody>${c.peers.map((x,i)=>`<tr class="${i===3?'target':''}"><td>${esc(x.name)}${i===3?' · focal':i===1?' · reference':''}</td><td>${esc(x.population)}</td><td>${x.affordability}</td><td>${x.access}</td><td>${esc(x.value)}</td><td>${x.denial}%</td><td>${x.units}</td></tr>`).join('')}</tbody></table></div><p class="small">↑ Higher means greater burden. ACS 2019–2023 vintage is described in the supplied framework; HMDA year and full extraction filters are unverified. Peer model and score normalization have not been reproduced.</p><div class="callout">Affordability definition: supplied 75% price-to-income + 25% rent-to-income scorecard. Existing scores are displayed verbatim; raw ratios are not directly combined because normalization formulas were not supplied. Access: supplied 50% affordable-units availability + 50% denials scorecard.</div>`;
-if(tab==='action')$('panel').innerHTML=`<h3>${p.title}</h3><p class="body">Proposed implementation pathway; dates and resources are planning assumptions.</p>${[['01','First 30 days · validate the mechanism',`Owner: PNC community development lead with ${p.partner}. Confirm local data, eligible service footprint, target households, partner capacity and the specific financing or borrower barrier. For denials, obtain counts, reasons and applicant/loan composition before prescribing a product.`],['02','Days 31–90 · design a bounded pilot',`Owner: program lead with credit, risk, compliance and local partners. ${p.mechanism} Establish a budget, staff owner, eligibility checklist and baseline; secure approvals before launch.`],['03','Months 4–12 · deliver and evaluate',`Owner: delivery partner and PNC program team. Track: ${p.kpi}. The selected ${$('horizon').selectedOptions[0].text.toLowerCase()} scenario affects delivery capacity, but construction outcomes may take longer.`],['04','Scale only after an evidence gate','Compare results with baseline and, where practical, a credible comparison group. Check household sustainability, delivery costs and distribution of benefits. Expand through a repeatable partner playbook after reviewing outcomes.']].map(([n,h,t])=>`<div class="step"><span>${n}</span><div><h3>${h}</h3><p>${t}</p></div></div>`).join('')}<div class="two-col"><div><h3>Resource scenario</h3><p class="body">${$('budget').selectedOptions[0].text}; ${$('staff').selectedOptions[0].text}; ${$('horizon').selectedOptions[0].text}. Capital is an illustrative envelope, not a grant budget or approved deployment. Validate financing structure and actual project costs.</p></div><div><h3>Required decisions</h3><p class="body">Local eligibility; partner due diligence; credit underwriting; risk and compliance; investor/servicer permissions for hardship options; project entitlements and subsidy awards where applicable.</p></div></div><div class="callout">${p.secondary}</div>`;
-if(tab==='score')$('panel').innerHTML=`<div class="two-col"><div><h3>Five-factor match score</h3><p class="body">Score = 100 × Σ(weight × rating/5) / Σ(weights). Ratings are analyst judgments, not model predictions or estimated success probabilities. Weights are normalized automatically.</p>${FACTORS.map((f,i)=>`<div class="factor"><div class="factor-title"><span>${f}</span><strong>${ratings(selected)[i].toFixed(1)} / 5 · weight ${weights[i]}</strong></div><div class="track"><i style="width:${ratings(selected)[i]*20}%"></i></div><p>${p.notes[i]}</p></div>`).join('')}</div><div><div class="callout"><strong>Provisional score: ${scoreText(selected)} / 100</strong><br>Evidence remains visible separately: ${p.evidence}. It also contributes as your fifth weighted factor. A strong fit cannot resolve an unknown eligibility gate. Expansion feasibility is capped at 3/5 pending local verification.</div><h3>Rating anchors</h3><p class="body">1 = weak/major constraints; 2 = limited; 3 = plausible with conditions; 4 = strong relevant capability; 5 = strong fit with few known constraints. Missing real capacity is represented through the editable scenario, never as verified PNC capacity.</p><h3>Capacity calculation</h3><p class="body">Capacity = clamp(4 + 0.5 × Σ sign(scenario tier − required tier), 1, 5), capped at 2 if any required resource tier is unmet. Required capital/staff/time tiers for this plan: ${PLANS[selected].requirements.join(' / ')} (1=small, 2=pilot, 3=expansion). This is a simple demonstration heuristic, not a cost model.</p><h3>Expansion feasibility</h3><p class="body">Base rating ${p.ratings[3]}/5, adjusted by +1 for alignment or −1 for mismatch with the selected business priority; bounded 1–3 until local eligibility, partner capacity and approvals are verified. Business alignment alone does not demonstrate feasibility. Proposed new tools need separate product, risk and approval review.</p></div></div>`;
-if(tab==='evidence')$('panel').innerHTML=`<div class="callout"><strong>Evidence status: ${p.evidence}</strong><br>Local sources support conditions and possible mechanisms. They do not prove the causes of the peer-score gap or the expected effect of PNC’s intervention.</div><div class="source"><strong>Supplied analysis · peer divergence model</strong><br>Peer groups, case scores and indicators retained. Original models, raw data, uncertainty and score normalization unavailable. User research used as leads and checked against linked sources where noted.</div>${p.sources.map(source).join('')}<p class="small">Research checked October 21, 2026. Local documents may be older or draft. Verify current program rules before implementation.</p>`;
+// Common Ground | PNC Housing Opportunity & AI Toolkit Matcher
+// Enterprise UI logic (Zero emojis, explicit Target vs. Benchmark hierarchy)
+
+const $ = (id) => document.getElementById(id);
+
+let selectedCaseId = "sonoma-lake";
+let filterAxis = "all";
+let filterUrbanicity = "all";
+let filterRegime = "core";
+let currentTab = "matcher";
+
+let dismissedIds = [];
+let lastDismissed = null;
+
+let tools = PNC_TOOLS.map(t => ({ ...t }));
+
+function esc(str) {
+  if (typeof str !== "string") return str ?? "";
+  return str.replace(/[&<>'"]/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c] || c
+  ));
 }
-function renderToolkit(){const tools=[['Affordable housing finance','capital','Addresses development and preservation capital needs. Requires viable projects, sponsors, subsidies and approvals.'],['Community development partnerships','cdb','Supports rehabilitation, nonprofit lending and delivery capacity. Funding and local partner availability need confirmation.'],['Homebuyer grants','grants','Published amounts: Low-Income Grant up to $2,500; LMI Borrower Grant up to $3,000; PNC Grant up to $5,000. Income, first-time buyer and targeted assessment-area tract rules vary; stacking is not assured.'],['Community Loan','community','As little as 3% down, no PMI and minimal reserves for eligible borrowers. Do not assume it resolves any specific denial reason.'],['Mortgage hardship assistance','hardship','Supports eligible existing mortgage borrowers through repayment, forbearance, deferral and modification options. Loan, investor and insurer rules govern availability. Retention and payment relief are distinct from purchase access.']];$('toolkit').innerHTML=`<h2>PNC toolkit</h2><p class="body">Published capabilities mapped to barriers. Local resources and approvals remain unverified.</p>${tools.map(([h,k,t])=>`<article class="tool-card"><span class="badge">Existing capability</span><h3>${h}</h3><p>${t}</p><a href="${SOURCES[k][1]}" target="_blank" rel="noopener">Official PNC source ↗</a></article>`).join('')}<div class="callout">National multifamily finance and retail mortgage grants have different geographic rules. Do not apply a single branch-footprint filter to the entire toolkit. Future institution profiles can use the same program, geography, capacity and evidence fields.</div>`}
-function renderMethod(){$('method').innerHTML=`<h2>Evidence & method</h2><div class="method-box"><h3>What the prototype does</h3><p class="body">Connects four supplied peer comparisons with researched local barriers and published PNC programs. A transparent five-factor scoring heuristic prioritizes conditional interventions. Interactive scenario changes recalculate scores locally. No live AI calls or retrained ML model are running in this demo.</p><h3>What the original analysis supplies</h3><p class="body">Learned socioeconomic feature weights and five-county peer groups, followed by affordability and access scorecards. This prototype retains their outputs. R² describes explained variation, not classification accuracy. Model evaluation details, source data and normalization are unavailable.</p><h3>Limits that affect interpretation</h3><ul class="list"><li>Predictive importance and peer differences do not establish causation.</li><li>County medians do not measure individual affordability or unequal access across demographic groups.</li><li>Aggregate denial rates need loan counts, reasons and applicant/loan composition.</li><li>Affordable-unit ratios do not establish vacancies, suitability, availability or eligibility.</li><li>Home-value-to-income ratios omit mortgage rates, insurance, property taxes and maintenance.</li><li>Cross-axis divergence exists in the selected cases; no low-divergence selection threshold is verified.</li><li>City evidence, county data, historical shocks and draft plans have different scopes and dates.</li><li>Federal assistance per total population is not coverage among eligible households.</li><li>Job proximity and property-tax lock-in claims are hypotheses unless separately verified. California Proposition 13 does not literally freeze tax bills.</li></ul></div><div class="method-box"><h3>From today’s demo to a live service</h3><p class="body">Today: static HTML, CSS and JavaScript, prepared evidence, deterministic scores and downloadable analysis; no account required. Future: authenticated institutional profiles, saved scenarios, secure backend, versioned source retrieval, evidence review and AI-assisted synthesis. Scores should remain auditable and subject to human review. Secrets and private institutional inputs belong on the backend.</p><h3>Fair evaluation</h3><p class="body">Use confidence and eligibility gates alongside scores. Validate recommendations with institution experts and community partners. Evaluate incremental outcomes, costs and who benefits before scaling.</p></div><h3>Source register</h3>${Object.keys(SOURCES).map(source).join('')}`}
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{['matches','toolkit','method'].forEach(id=>$(id).hidden=id!==b.dataset.view);document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b))});document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('selected',x===b));render()});['budget','staff','horizon','priority'].forEach(id=>$(id).onchange=render);$('reset').onclick=()=>{weights=[20,20,20,20,20];['budget','staff','horizon'].forEach(k=>$(k).value='2');$('priority').value='balanced';renderWeights();render()};
-$('export').onclick=()=>{const report={name:'Common Ground — PNC pilot',date:'2026-10-21',status:'Research prototype; provisional analyst scoring, not PNC commitments',weights:Object.fromEntries(FACTORS.map((f,i)=>[f,weights[i]])),scenario:{capital:$('budget').selectedOptions[0].text,staff:$('staff').selectedOptions[0].text,horizon:$('horizon').selectedOptions[0].text,priority:$('priority').value},opportunities:CASES.map((c,i)=>({...c,matchScore:score(i),factorRatings:Object.fromEntries(FACTORS.map((f,j)=>[f,ratings(i)[j]])),plan:PLANS[i]})),sources:SOURCES};const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='common-ground-pnc-analysis.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-renderWeights();renderToolkit();renderMethod();render();
+
+function evaluateCase(c) {
+  const activeTools = tools.filter(t => t.active);
+  const results = c.factors.map(f => {
+    const matched = activeTools.find(t => t.tags.includes(f.required_tag));
+    const suggestedCustom =
+      tools.find(t => t.id === f.suggested_custom_id || t.tags.includes(f.required_tag)) ||
+      SUGGESTED_CUSTOM_TOOLS.find(t => t.id === f.suggested_custom_id || t.tags.includes(f.required_tag));
+    return {
+      factor: f,
+      matchedTool: matched || null,
+      suggestedTool: suggestedCustom || null
+    };
+  });
+  const solved = results.filter(r => r.matchedTool).length;
+  return { solved, total: results.length, allSolved: solved === results.length, results };
+}
+
+function getActivePoolAndQueue() {
+  const primaryCases = CASES.filter(c => !c.is_backup);
+  const backupCases = CASES.filter(c => c.is_backup);
+
+  // Only promote backup queue clusters when primary core clusters have been explicitly dismissed
+  const dismissedPrimaryCoreCount = primaryCases.filter(
+    c => c.market_regime === "core" && dismissedIds.includes(c.id)
+  ).length;
+
+  const availableBackups = backupCases.filter(b => !dismissedIds.includes(b.id));
+  const promotedBackups = availableBackups.slice(0, dismissedPrimaryCoreCount);
+  const remainingQueue = availableBackups.slice(dismissedPrimaryCoreCount);
+
+  const activePool = [
+    ...primaryCases.filter(c => !dismissedIds.includes(c.id)),
+    ...promotedBackups
+  ];
+
+  const visible = activePool.filter(c => {
+    if (filterRegime !== "all" && c.market_regime !== filterRegime) return false;
+    if (filterAxis !== "all" && c.divergence_axis !== filterAxis) return false;
+    if (filterUrbanicity !== "all" && c.urbanicity !== filterUrbanicity) return false;
+    return true;
+  }).slice(0, 4);
+
+  const matchingQueue = remainingQueue.filter(c => {
+    if (filterRegime !== "all" && c.market_regime !== filterRegime) return false;
+    if (filterAxis !== "all" && c.divergence_axis !== filterAxis) return false;
+    if (filterUrbanicity !== "all" && c.urbanicity !== filterUrbanicity) return false;
+    return true;
+  });
+
+  return { visible, remainingQueue, matchingQueue };
+}
+
+function getVisibleCases() {
+  return getActivePoolAndQueue().visible;
+}
+
+function dismissCluster(id, e) {
+  if (e) e.stopPropagation();
+  const c = CASES.find(x => x.id === id);
+  if (!c) return;
+  const beforeIds = getVisibleCases().map(x => x.id);
+  dismissedIds.push(id);
+  const after = getVisibleCases();
+  const surfaced = after.find(x => !beforeIds.includes(x.id));
+
+  lastDismissed = {
+    id,
+    title: `${c.target} vs. ${c.reference}`,
+    surfaced: surfaced ? `${surfaced.target} vs. ${surfaced.reference}` : null
+  };
+
+  if (selectedCaseId === id && after.length > 0) {
+    selectedCaseId = after[0].id;
+  }
+  renderAll();
+}
+
+function undoDismiss() {
+  if (!lastDismissed) return;
+  dismissedIds = dismissedIds.filter(id => id !== lastDismissed.id);
+  selectedCaseId = lastDismissed.id;
+  lastDismissed = null;
+  renderAll();
+}
+
+function restoreAll() {
+  dismissedIds = [];
+  lastDismissed = null;
+  renderAll();
+}
+
+function toggleTool(id) {
+  const t = tools.find(x => x.id === id);
+  if (t) {
+    t.active = !t.active;
+    renderAll();
+  }
+}
+
+function enableToolById(id) {
+  let t = tools.find(x => x.id === id);
+  if (!t) {
+    const template = SUGGESTED_CUSTOM_TOOLS.find(x => x.id === id);
+    if (template) {
+      t = { ...template, active: true };
+      tools.push(t);
+    }
+  } else {
+    t.active = true;
+  }
+  renderAll();
+}
+
+function removeCustomTool(id, e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  tools = tools.filter(x => x.id !== id);
+  renderAll();
+}
+
+function closeUndoToast() {
+  lastDismissed = null;
+  renderTopStatus();
+}
+
+function renderTopStatus() {
+  const activeCount = tools.filter(t => t.active).length;
+  $("toolkit-count-pill").textContent = `${activeCount} Active`;
+
+  const restoreBtn = $("restore-all-btn");
+  if (dismissedIds.length > 0) {
+    restoreBtn.hidden = false;
+    restoreBtn.textContent = `Restore Dismissed (${dismissedIds.length})`;
+  } else {
+    restoreBtn.hidden = true;
+  }
+
+  const toast = $("undo-toast");
+  if (lastDismissed) {
+    toast.hidden = false;
+    toast.innerHTML = `
+      <span>
+        Dismissed <strong>${esc(lastDismissed.title)}</strong>
+        ${lastDismissed.surfaced ? ` &middot; Surfaced next match: <strong>${esc(lastDismissed.surfaced)}</strong>` : ""}
+      </span>
+      <div class="toast-btns">
+        <button type="button" class="btn-undo" onclick="undoDismiss()">Undo</button>
+        <button type="button" class="btn-close-toast" onclick="closeUndoToast()" aria-label="Close">Close</button>
+      </div>
+    `;
+  } else {
+    toast.hidden = true;
+    toast.innerHTML = "";
+  }
+}
+
+function renderCards() {
+  const container = $("cards");
+  const queueBar = $("queue-bar");
+  const { visible, remainingQueue } = getActivePoolAndQueue();
+
+  if (queueBar) {
+    const queueCount = filterRegime === "core" || filterRegime === "all" ? remainingQueue.length : 0;
+    queueBar.innerHTML = `
+      <span>
+        Showing <strong>${visible.length} Active Peer Cluster${visible.length === 1 ? "" : "s"}</strong>
+        ${queueCount > 0
+          ? ` &middot; <span class="queue-hint">${queueCount} more ranked cluster${queueCount === 1 ? "" : "s"} in queue &mdash; dismiss any card to pull next match</span>`
+          : (dismissedIds.length > 0 ? ` &middot; <span class="queue-hint">All queued clusters surfaced</span>` : "")}
+      </span>
+    `;
+  }
+
+  if (visible.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>No peer communities match this filter combination.</p>
+        <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
+      </div>
+    `;
+    return;
+  }
+
+  if (!visible.some(c => c.id === selectedCaseId)) {
+    selectedCaseId = visible[0].id;
+  }
+
+  container.innerHTML = visible.map(c => {
+    const isSel = c.id === selectedCaseId;
+    const ev = evaluateCase(c);
+    return `
+      <div class="card ${isSel ? "selected" : ""}" onclick="selectCase('${c.id}')">
+        <div class="card-top">
+          <div class="card-tag-wrap">
+            <span class="card-tag">${esc(c.category_tag)}</span>
+            ${c.is_backup ? `<span class="queue-badge">From Queue</span>` : ""}
+          </div>
+          <div class="card-actions">
+            <span class="match-pill ${ev.allSolved ? "pill-ok" : "pill-gap"}">
+              ${ev.solved}/${ev.total} Factors Matched
+            </span>
+            <button type="button" class="btn-x" title="Dismiss cluster and surface next peer match" onclick="dismissCluster('${c.id}', event)">Dismiss</button>
+          </div>
+        </div>
+        <h3 class="card-title">
+          ${esc(c.target)}
+          <span class="card-peer-sub">vs. peer ${esc(c.reference)}</span>
+        </h3>
+        <div class="card-metrics-grid">
+          <div class="cm-item">
+            <span class="cm-label">Peer Baseline Match</span>
+            <span class="cm-val">${esc(c.peer_baseline)}</span>
+          </div>
+          <div class="cm-item">
+            <span class="cm-label">Quantitative Metric Gap</span>
+            <span class="cm-val cm-gap">${esc(c.metric_gap)}</span>
+          </div>
+        </div>
+        <div class="card-qual-row">
+          <span class="cm-label">AI-Researched Qualitative Drivers:</span>
+          <span class="cm-qual-val">${esc(c.qualitative_drivers)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function selectCase(id) {
+  selectedCaseId = id;
+  renderAll();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  renderDetail();
+}
+
+function resetAllFilters() {
+  filterAxis = "all";
+  filterUrbanicity = "all";
+  filterRegime = "core";
+  dismissedIds = [];
+  lastDismissed = null;
+  document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(b => {
+    b.classList.toggle("selected", b.dataset.val === "all");
+  });
+  $("filter-urbanicity").value = "all";
+  $("filter-regime").value = "core";
+  renderAll();
+}
+
+function renderDetail() {
+  const container = $("detail");
+  const c = CASES.find(x => x.id === selectedCaseId);
+  if (!c) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const ev = evaluateCase(c);
+
+  let bodyHTML = "";
+  if (currentTab === "matcher") {
+    bodyHTML = `
+      <div class="match-table-wrap">
+        <div class="match-grid-head">
+          <div>1. Divergence Factor (${esc(c.target)} vs. ${esc(c.reference)})</div>
+          <div>2. Local Govt Subsidy (Auto-Researched)</div>
+          <div>3. Matched PNC Tool (From Toolkit)</div>
+        </div>
+
+        ${ev.results.map(r => {
+          const f = r.factor;
+          const m = r.matchedTool;
+          return `
+            <div class="match-row ${m ? "row-solved" : "row-unsolved"}">
+              <div class="col-factor">
+                <h4>${esc(f.title)}</h4>
+                <div class="factor-metric-badge">${esc(f.metrics)}</div>
+                <p>${esc(f.why)}</p>
+              </div>
+
+              <div class="col-local">
+                <span class="col-mini-tag tag-local">LOCAL SUBSIDY</span>
+                <div class="local-title">${esc(f.local_program)}</div>
+                <p>${esc(f.local_desc)}</p>
+              </div>
+
+              <div class="col-tool">
+                ${m ? `
+                  <span class="col-mini-tag ${m.isCustom ? "tag-custom" : "tag-matched"}">
+                    ${m.isCustom ? "MATCHED CUSTOM TOOL" : "MATCHED PNC TOOL"}
+                  </span>
+                  <div class="tool-matched-title">${esc(m.name)}</div>
+                  <p>${esc(f.action)}</p>
+                ` : `
+                  <span class="col-mini-tag tag-unmatched">UNMATCHED FACTOR</span>
+                  <div class="tool-unmatched-label">No Matching Tool in Standard PNC Toolkit</div>
+                  <p class="unmatched-sub">Standard tools do not directly address this divergence barrier.</p>
+                  ${r.suggestedTool ? `
+                    <button class="btn-add-custom-inline" onclick="enableToolById('${r.suggestedTool.id}')">
+                      + Enable Custom Tool: "${esc(r.suggestedTool.name)}"
+                    </button>
+                  ` : `
+                    <button class="btn-add-custom-inline" onclick="openToolkit()">
+                      + Add Custom Tool in Toolkit
+                    </button>
+                  `}
+                `}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  } else {
+    bodyHTML = `
+      <p class="peer-note">
+        <strong>Community Form:</strong> Share of county households in Suburban, Urban, and Rural census tracts. 
+        <strong>Affordability &amp; Access Burden (0–100):</strong> National percentile ranks where higher scores indicate worse housing burden.
+      </p>
+      <div class="table-wrap">
+        <table class="peer-table">
+          <thead>
+            <tr>
+              <th>County</th>
+              <th>Community Form (Suburban / Urban / Rural)</th>
+              <th>Population</th>
+              <th>Median Income</th>
+              <th>Median Home Value (Ratio)</th>
+              <th>Affordability Burden</th>
+              <th>Access Burden</th>
+              <th>Affordable Units / LMI HH</th>
+              <th>Mortgage Denials</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${c.peers.map(p => {
+              const isTarget = p.name === c.target;
+              const isRef = p.name === c.reference;
+              return `
+                <tr class="${isTarget ? "tr-target" : (isRef ? "tr-ref" : "")}">
+                  <td class="col-county-cell">
+                    ${isTarget ? `<div class="t-badge-line"><span class="t-badge tb-target">TARGET</span></div>` : ""}
+                    ${isRef ? `<div class="t-badge-line"><span class="t-badge tb-ref">PEER BENCHMARK</span></div>` : ""}
+                    <div class="county-name-line"><strong>${esc(p.name)}</strong></div>
+                  </td>
+                  <td>
+                    <div class="form-text">${esc(p.form)}</div>
+                    <div class="mini-bar">
+                      <span class="mb-s" style="width:${p.s}%"></span>
+                      <span class="mb-u" style="width:${p.u}%"></span>
+                      <span class="mb-r" style="width:${p.r}%"></span>
+                    </div>
+                  </td>
+                  <td>${esc(p.pop)}</td>
+                  <td>${esc(p.inc)}</td>
+                  <td><strong>${esc(p.value)}</strong></td>
+                  <td>${p.aff}th %ile</td>
+                  <td>${p.acc}th %ile</td>
+                  <td><strong>${p.units}</strong></td>
+                  <td><strong>${esc(p.denial)}</strong></td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <section class="detail-box">
+      <div class="detail-header">
+        <div>
+          <span class="eyebrow">${esc(c.category_tag)}</span>
+          <h2>
+            Target: ${esc(c.target)}
+            <span class="detail-peer-sub">vs. Peer Benchmark: ${esc(c.reference)}</span>
+          </h2>
+          <p>${esc(c.summary)}</p>
+        </div>
+        <button class="btn-outline" onclick="openToolkit()">Configure PNC Toolkit (${tools.filter(t => t.active).length} Active)</button>
+      </div>
+
+      <!-- 3-Box Executive Comparison Strip -->
+      <div class="exec-strip">
+        <div class="exec-item">
+          <span class="exec-label">1. Why They Are Peers (Baseline Match)</span>
+          <strong>${esc(c.strip_match)}</strong>
+        </div>
+        <div class="exec-item">
+          <span class="exec-label">2. Affordability Outcome (${esc(c.target.split(',')[0])} vs. ${esc(c.reference.split(',')[0])})</span>
+          <strong>${esc(c.strip_aff)}</strong>
+        </div>
+        <div class="exec-item">
+          <span class="exec-label">3. Access &amp; Lending Outcome (${esc(c.target.split(',')[0])} vs. ${esc(c.reference.split(',')[0])})</span>
+          <strong>${esc(c.strip_acc)}</strong>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab ${currentTab === "matcher" ? "active" : ""}" onclick="switchTab('matcher')">
+          Divergence Factors &amp; AI Match (${ev.solved}/${ev.total})
+        </button>
+        <button class="tab ${currentTab === "peers" ? "active" : ""}" onclick="switchTab('peers')">
+          5-County Peer Comparison Table
+        </button>
+      </div>
+
+      <div class="detail-body">
+        ${bodyHTML}
+      </div>
+    </section>
+  `;
+}
+
+function openToolkit() {
+  document.querySelectorAll("[data-view]").forEach(b => {
+    b.classList.toggle("active", b.dataset.view === "toolkit");
+  });
+  $("matches").hidden = true;
+  $("toolkit").hidden = false;
+  renderToolkit();
+}
+
+function addCustomToolFromForm(e) {
+  e.preventDefault();
+  const name = $("ct-name").value.trim();
+  const tag = $("ct-tag").value;
+  const desc = $("ct-desc").value.trim();
+  if (!name) return;
+
+  const existingCustom = tools.find(
+    t => t.isCustom && (t.name.toLowerCase() === name.toLowerCase() || t.tags.includes(tag))
+  );
+
+  if (existingCustom) {
+    existingCustom.name = name;
+    existingCustom.desc = desc || existingCustom.desc;
+    existingCustom.active = true;
+  } else {
+    tools.push({
+      id: "custom-" + Date.now(),
+      name,
+      category: "Custom Tool",
+      active: true,
+      isCustom: true,
+      tags: [tag],
+      desc: desc || "Custom PNC tool added to solve local divergence barriers."
+    });
+  }
+
+  $("ct-name").value = "";
+  $("ct-desc").value = "";
+  renderAll();
+}
+
+function quickFill(type) {
+  if (type === "sonoma") {
+    $("ct-name").value = "Hospital & Teacher Down-Payment + Backyard ADU Loan";
+    $("ct-tag").value = "workforce-adu";
+    $("ct-desc").value = "Pairs a $25,000 shared-equity down-payment match for essential workers with a backyard ADU loan to bypass Prop 13 resale freezes.";
+  } else if (type === "lafayette") {
+    $("ct-name").value = "Fortified-Roof Grant & Insurance-Relief Bridge Loan";
+    $("ct-tag").value = "flood-insurance-dti";
+    $("ct-desc").value = "Advances Louisiana's $10,000 Fortified Roof Grant at closing so buyers immediately lock in 30% lower insurance and pass DTI limits.";
+  } else if (type === "bernalillo") {
+    $("ct-name").value = "Small-Dollar Starter & Casita Rehab Mortgage (<$150k)";
+    $("ct-tag").value = "small-dollar-rehab";
+    $("ct-desc").value = "Low-fee mortgage designed for sub-$150k starter home acquisition-rehab and backyard casita infill.";
+  }
+}
+
+function renderToolkit() {
+  const container = $("toolkit");
+  const existing = tools.filter(t => !t.isCustom);
+  const custom = tools.filter(t => t.isCustom);
+
+  container.innerHTML = `
+    <div class="top-bar">
+      <div>
+        <h1>PNC Toolkit &amp; Custom Tools</h1>
+        <p class="sub">Check which tools PNC offers in the target market, or add a custom tool to solve open divergence factors.</p>
+      </div>
+      <button class="btn-outline" onclick="document.querySelector('[data-view=matches]').click()">Back to Peer Communities</button>
+    </div>
+
+    <div class="toolkit-layout">
+      <div>
+        <h3 class="sec-h">PNC Existing Tools</h3>
+        <div class="tool-list">
+          ${existing.map(t => `
+            <label class="tool-card ${t.active ? "tc-on" : "tc-off"}">
+              <input type="checkbox" ${t.active ? "checked" : ""} onchange="toggleTool('${t.id}')">
+              <div>
+                <div class="tc-head">
+                  <strong>${esc(t.name)}</strong>
+                  <span class="tc-badge">PNC Verified</span>
+                </div>
+                <p>${esc(t.desc)}</p>
+              </div>
+            </label>
+          `).join("")}
+        </div>
+
+        <h3 class="sec-h" style="margin-top:22px;">Custom Tools (Added / Specialized Programs)</h3>
+        <div class="tool-list">
+          ${custom.length === 0 ? `
+            <div class="empty-custom-box">
+              No custom tools added yet. Use <strong>Add New Custom Tool</strong> on the right (or Quick Fill) to demo adding a specialized lending program.
+            </div>
+          ` : custom.map(t => `
+            <label class="tool-card ${t.active ? "tc-on" : "tc-off"}">
+              <input type="checkbox" ${t.active ? "checked" : ""} onchange="toggleTool('${t.id}')">
+              <div style="flex:1;">
+                <div class="tc-head" style="justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <strong>${esc(t.name)}</strong>
+                    <span class="tc-badge badge-orange">Custom Tool</span>
+                  </div>
+                  <button type="button" class="btn-x" onclick="removeCustomTool('${t.id}', event)" title="Remove custom tool">Remove</button>
+                </div>
+                <p>${esc(t.desc)}</p>
+              </div>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="add-tool-box">
+        <span class="eyebrow">ADD CUSTOM TOOL</span>
+        <h3>Add New Custom Tool</h3>
+        <p class="sub" style="margin-bottom:12px;">Add a specialized loan or grant rule. The AI immediately checks if it solves any unmatched county divergence factors.</p>
+
+        <div class="quick-row">
+          <span>Quick Fill:</span>
+          <button type="button" class="btn-qf" onclick="quickFill('sonoma')">+ Workforce &amp; ADU Loan</button>
+          <button type="button" class="btn-qf" onclick="quickFill('lafayette')">+ Roof Grant Bridge Loan</button>
+          <button type="button" class="btn-qf" onclick="quickFill('bernalillo')">+ Small-Dollar Casita Loan</button>
+        </div>
+
+        <form onsubmit="addCustomToolFromForm(event)" class="ct-form">
+          <label>
+            Tool / Program Name
+            <input type="text" id="ct-name" placeholder="e.g., Hospital & Teacher Down-Payment Loan" required>
+          </label>
+
+          <label>
+            Divergence Factor It Solves
+            <select id="ct-tag">
+              <option value="workforce-adu">Workforce Lockout &amp; Prop 13 / ADU Infill (Sonoma)</option>
+              <option value="flood-insurance-dti">Flood Insurance DTI Spike &amp; Roof Rehab (Lafayette)</option>
+              <option value="small-dollar-rehab">Small-Dollar Casita &amp; Starter Rehab &lt;$150k (Bernalillo)</option>
+              <option value="dpa-grant">Upfront Down-Payment &amp; Closing Cash Hurdle (Bucks)</option>
+              <option value="supply-lihtc">Multifamily Supply &amp; Zoning Infill (All)</option>
+            </select>
+          </label>
+
+          <label>
+            Short Description (Optional)
+            <textarea id="ct-desc" rows="2" placeholder="How this tool works alongside local government subsidies..."></textarea>
+          </label>
+
+          <button type="submit" class="btn-submit">+ Add Custom Tool to Toolkit</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+function renderAll() {
+  renderTopStatus();
+  renderCards();
+  renderDetail();
+  if (!$("toolkit").hidden) renderToolkit();
+}
+
+// Navigation
+document.querySelectorAll("[data-view]").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll("[data-view]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const v = btn.dataset.view;
+    $("matches").hidden = v !== "matches";
+    $("toolkit").hidden = v !== "toolkit";
+    if (v === "toolkit") renderToolkit();
+  };
+});
+
+// Filters
+document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    filterAxis = btn.dataset.val;
+    renderAll();
+  };
+});
+
+$("filter-urbanicity").onchange = e => {
+  filterUrbanicity = e.target.value;
+  renderAll();
+};
+
+$("filter-regime").onchange = e => {
+  filterRegime = e.target.value;
+  renderAll();
+};
+
+$("restore-all-btn").onclick = restoreAll;
+
+renderAll();
