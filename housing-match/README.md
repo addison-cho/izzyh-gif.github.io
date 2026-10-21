@@ -27,7 +27,7 @@ Capacity uses an explicit tier-based demonstration heuristic; business priority 
 
 ## Data provenance and limits
 
-Peer groups and outcome values come from the user-supplied `results yippie.html`. The affordability definition follows its 75% price-to-income / 25% rent-to-income scorecard. Existing composite scores are preserved because their normalization is unavailable. There are 20 case rows and 19 unique counties (Bucks appears twice).
+Peer groups and outcome values come from the user-supplied `peer divergence model`. The affordability definition follows its 75% price-to-income / 25% rent-to-income scorecard. Existing composite scores are preserved because their normalization is unavailable. There are 20 case rows and 19 unique counties (Bucks appears twice).
 
 Current program capabilities and local barrier leads were checked against official linked sources. User research helped identify preservation, wildfire and flood pathways. Historical, city-level and draft sources are labeled. Local evidence does not establish causal attribution to the supplied score gaps. Original ML models were not rerun. PNC’s local resources, eligibility and expected intervention effects remain unverified.
 
