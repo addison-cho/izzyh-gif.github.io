@@ -125,18 +125,8 @@ function togglePinCase(id, e) {
 
   if (pinnedIds.includes(id)) {
     pinnedIds = pinnedIds.filter(x => x !== id);
-    lastAction = {
-      type: "unpin",
-      id,
-      label: `Unpinned ${c.target}`
-    };
   } else {
     pinnedIds.push(id);
-    lastAction = {
-      type: "pin",
-      id,
-      label: `Pinned ${c.target} to front`
-    };
   }
   renderAll();
 }
@@ -154,7 +144,7 @@ function dismissCase(id, e) {
     type: "dismiss",
     id,
     wasPinned,
-    label: `Dismissed ${c.target} vs. ${c.reference}`
+    label: `Deleted ${c.target} vs. ${c.reference}`
   };
 
   const remaining = getFilteredAndSortedCases();
@@ -172,10 +162,6 @@ function undoLastAction() {
       pinnedIds.push(lastAction.id);
     }
     selectedCaseId = lastAction.id;
-  } else if (lastAction.type === "pin") {
-    pinnedIds = pinnedIds.filter(id => id !== lastAction.id);
-  } else if (lastAction.type === "unpin") {
-    if (!pinnedIds.includes(lastAction.id)) pinnedIds.push(lastAction.id);
   } else if (lastAction.type === "delete-prog") {
     programs.splice(lastAction.index, 0, lastAction.program);
   }
@@ -186,12 +172,7 @@ function undoLastAction() {
 function closeUndoToast() {
   lastAction = null;
   renderStatusAndToast();
-}
-
-function restoreAllDismissed() {
-  dismissedIds = [];
-  lastAction = null;
-  renderAll();
+  if (!$("toolkit").hidden) renderToolkit();
 }
 
 function toggleShowAllCards() {
@@ -223,8 +204,6 @@ function resetAllFilters() {
   sortBy = "impact";
   filterUrbanicity = "all";
   filterRegime = "all";
-  dismissedIds = [];
-  lastAction = null;
   $("search-input").value = "";
   $("sort-select").value = "impact";
   $("filter-urbanicity").value = "all";
@@ -235,14 +214,6 @@ function resetAllFilters() {
 function renderStatusAndToast() {
   const activeCount = programs.filter(p => p.active).length;
   $("program-count-pill").textContent = `${activeCount}`;
-
-  const restoreBtn = $("restore-all-btn");
-  if (dismissedIds.length > 0) {
-    restoreBtn.hidden = false;
-    restoreBtn.textContent = `Restore Dismissed (${dismissedIds.length})`;
-  } else {
-    restoreBtn.hidden = true;
-  }
 
   const toast = $("undo-toast");
   if (lastAction) {
@@ -861,7 +832,5 @@ $("filter-regime").onchange = e => {
   filterRegime = e.target.value;
   renderAll();
 };
-
-$("restore-all-btn").onclick = restoreAllDismissed;
 
 renderAll();
