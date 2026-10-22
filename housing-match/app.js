@@ -27,6 +27,15 @@ function esc(str) {
   ));
 }
 
+function getTierLabel(scoreVal) {
+  const rounded = Math.round(scoreVal);
+  if (rounded >= 5) return "High Fit";
+  if (rounded === 4) return "Strong Fit";
+  if (rounded === 3) return "Moderate / Conditional";
+  if (rounded === 2) return "Limited";
+  return "Low Fit";
+}
+
 function evaluateCase(c) {
   const activePrograms = programs.filter(p => p.active);
   const results = c.factors.map(f => {
@@ -41,8 +50,8 @@ function evaluateCase(c) {
   const total = results.length;
   const coverageRatio = total > 0 ? solved / total : 0;
 
-  // Consistent, auditable 1-5 rating for Toolkit & Program Alignment
-  const alignmentRating = Number((1.0 + 4.0 * coverageRatio).toFixed(1));
+  // Clean 1-5 tier rating for Toolkit & Program Alignment
+  const alignmentRating = Math.max(1, Math.round(1 + 4 * coverageRatio));
 
   const ratings = {
     potential: c.base_ratings.potential,
@@ -491,26 +500,38 @@ function renderDetail() {
     panelHTML = `
       <div class="two-col">
         <div>
-          <h3>Five-Factor Impact Score Justification</h3>
+          <h3>Five-Dimension Impact Score Breakdown</h3>
           <p class="body">
-            To avoid arbitrary AI scoring, every community is evaluated on a standardized five-factor rubric:
-            <strong>Impact Score = &Sigma;(Weight &times; Rating / 5)</strong>.
+            Each opportunity is evaluated across five equally weighted dimensions (20% each, up to 20 points per dimension) using a standardized 1–5 rating scale.
           </p>
 
           ${SCORE_RUBRIC_FACTORS.map(rf => {
             const val = ev.ratings[rf.key];
+            const tierLabel = getTierLabel(val);
             const note = rf.key === "alignment"
-              ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program (${Math.round((ev.solved / ev.total) * 100)}% matched). ${c.rubric_notes.alignment}`
+              ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program in your catalog. ${c.rubric_notes.alignment}`
               : c.rubric_notes[rf.key];
+
+            const tags = rf.key === "alignment"
+              ? [
+                  `${ev.solved} of ${ev.total} Factors Matched`,
+                  ev.allSolved ? "Full Catalog Coverage" : "Unmatched Gap Remaining"
+                ]
+              : ((c.rubric_tags && c.rubric_tags[rf.key]) || []);
 
             return `
               <div class="factor">
                 <div class="factor-title">
                   <span>${esc(rf.name)}</span>
-                  <strong>${val.toFixed(1)} / 5.0 &middot; weight ${rf.weight}%</strong>
+                  <strong>${val} / 5 &middot; ${esc(tierLabel)} &middot; ${rf.weight}% weight</strong>
                 </div>
                 <div class="factor-rule">${esc(rf.rule)}</div>
                 <div class="track"><i style="width:${val * 20}%"></i></div>
+                ${tags.length > 0 ? `
+                  <div class="submeasure-pills">
+                    ${tags.map(t => `<span class="submeasure-pill">${esc(t)}</span>`).join("")}
+                  </div>
+                ` : ""}
                 <p>${esc(note)}</p>
               </div>
             `;
@@ -520,19 +541,20 @@ function renderDetail() {
         <div>
           <div class="callout">
             <strong>Impact Score: ${ev.impactScore} / 100 (${ev.solved}/${ev.total} factors matched)</strong><br>
-            All five dimensions are weighted equally (20% each). Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Toolkit &amp; Program Alignment (20% weight)</strong> and recalculates the Impact Score.
+            All five dimensions are weighted equally at 20% (up to 20 points per dimension). Adding or enabling a program that solves an open divergence factor automatically raises <strong>Toolkit &amp; Program Alignment</strong> and updates the overall score.
           </div>
 
-          <h3>How Each Dimension Is Evaluated (20% Equal Weight Each)</h3>
-          <ul class="list">
-            <li><strong>1. Intervention Potential (20%):</strong> Can the financial institution's actions meaningfully address the barrier?</li>
-            <li><strong>2. Toolkit &amp; Program Alignment (20%):</strong> How well does the institution's toolkit align with the barrier that needs to be directly addressed?</li>
-            <li><strong>3. Operational Manageability (20%):</strong> Is it manageable for the institution to execute across funding, staffing, and approvals?</li>
-            <li><strong>4. Implementation &amp; Expansion Feasibility (20%):</strong> How realistic is it to implement new or expanded programs based on location, size, and business goals?</li>
-            <li><strong>5. Evidence Strength (20%):</strong> How strong is the documented evidence of the barrier being present?</li>
-          </ul>
+          <h3>1–5 Rating Scale Reference</h3>
+          <div class="rating-scale-list">
+            ${RATING_SCALE_KEY.map(item => `
+              <div class="rating-scale-row">
+                <span class="rs-tier">${esc(item.tier)} &middot; ${esc(item.label)}</span>
+                <span class="rs-desc">${esc(item.desc)}</span>
+              </div>
+            `).join("")}
+          </div>
 
-          <h3>Primary Evidence &amp; Sources</h3>
+          <h3 style="margin-top:20px;">Primary Evidence &amp; Sources</h3>
           ${(c.sources || []).map(k => {
             const s = SOURCES[k];
             if (!s) return "";
