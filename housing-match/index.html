@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Common Ground | PNC Housing Opportunity &amp; AI Toolkit Matcher</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Common Ground | Housing Opportunity Intelligence</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="data.js"></script>
   <script defer src="app.js"></script>
@@ -11,94 +11,124 @@
 <body>
   <header>
     <a class="brand" href="#">
-      <span class="mark"></span> COMMON GROUND
+      <span class="mark">CG</span>
+      COMMON GROUND
     </a>
     <div class="header-meta">
-      PEER DIVERGENCE &amp; TOOLKIT MATCHER
-      <span class="pill">PNC Financial Services</span>
+      HOUSING OPPORTUNITY INTELLIGENCE
+      <span class="pill">PNC Pilot</span>
     </div>
   </header>
 
   <div class="shell">
     <aside>
-      <div class="eyebrow">NAVIGATION</div>
-      <button class="nav active" data-view="matches">Peer Communities</button>
+      <div class="eyebrow">WORKSPACE</div>
+      <button class="nav active" data-view="matches">
+        <span>Community Matches</span>
+      </button>
       <button class="nav" data-view="toolkit">
-        <span>PNC Toolkit</span>
-        <span id="toolkit-count-pill" class="nav-pill">5 Active</span>
+        <span>Institution Programs</span>
+        <span id="program-count-pill" class="nav-pill">5</span>
       </button>
 
       <div class="institution">
-        <span class="eyebrow">ACTIVE INSTITUTION</span>
-        <h3>PNC Bank</h3>
-        <p>Matches county divergence factors to active PNC tools and local government subsidies.</p>
+        <span class="eyebrow">SELECTED INSTITUTION</span>
+        <h3>PNC Financial Services</h3>
+        <p>Peer divergence diagnosis.<br>Program-to-barrier matching.</p>
+        <span class="pill">Research Prototype</span>
       </div>
 
       <div class="aside-foot">
-        <strong>180 Degrees Consulting · CMU</strong><br>
-        PNC Case Competition · Oct 2026
+        180 Degrees Consulting<br>
+        Case Competition · October 2026<br>
+        <small>Independent prototype. Not affiliated with PNC.</small>
       </div>
     </aside>
 
     <main>
-      <!-- VIEW 1: PEER COMMUNITIES & AI MATCH -->
       <div id="matches">
-        <div class="top-bar">
-          <div>
-            <h1>Peer Community Divergence &amp; AI Matcher</h1>
-            <p class="sub">Identify where matched peer communities diverge and match root causes to PNC tools and local subsidies.</p>
-          </div>
-          <button id="restore-all-btn" class="btn-restore" hidden>Restore Dismissed (0)</button>
-        </div>
+        <section class="intro">
+          <div class="eyebrow">FROM PEER INSIGHT TO LOCAL ACTION</div>
+          <h1>Find where your programs can close local housing gaps.</h1>
+          <p>Compare peer communities, isolate local divergence factors, and match verified institution programs.</p>
+        </section>
 
-        <!-- Clean 3-Filter Strip Backed by Python Pipeline -->
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label>Divergence Focus</label>
-            <div class="chip-row" data-filter-group="axis">
-              <button class="chip selected" data-val="all">All</button>
-              <button class="chip" data-val="affordability">Affordability Gap</button>
-              <button class="chip" data-val="access">Access Gap</button>
+        <!-- Search, Filter, and Rank Controls -->
+        <section class="toolbar" aria-label="Search, filter, and rank opportunities">
+          <div class="search-row">
+            <div class="search-wrap">
+              <label for="search-input" class="sr-only">Search communities or factors</label>
+              <input
+                id="search-input"
+                type="search"
+                placeholder="Search county, peer benchmark, or divergence factor (e.g., Sonoma, zoning, flood, ADU)..."
+              >
+            </div>
+            <div class="sort-wrap">
+              <label for="sort-select">Rank cards by</label>
+              <select id="sort-select">
+                <option value="impact">Impact Match Score (High to Low)</option>
+                <option value="affordability">Affordability Burden Score (High to Low)</option>
+                <option value="access">Access Burden Score (High to Low)</option>
+              </select>
             </div>
           </div>
 
-          <div class="filter-group">
-            <label>Community Form</label>
-            <select id="filter-urbanicity" class="filter-select">
-              <option value="all">All</option>
-              <option value="urban">Urban</option>
-              <option value="suburban">Suburban</option>
-              <option value="rural">Rural</option>
-            </select>
-          </div>
+          <div class="filter-row">
+            <div class="filter-group">
+              <span class="filter-label">Gap Type</span>
+              <div class="filters" data-filter-group="axis">
+                <button type="button" class="selected" data-val="all">All</button>
+                <button type="button" data-val="affordability">Affordability Gap</button>
+                <button type="button" data-val="access">Access Gap</button>
+              </div>
+            </div>
 
-          <div class="filter-group">
-            <label>Town Type</label>
-            <select id="filter-regime" class="filter-select">
-              <option value="core" selected>Standard Markets (Default)</option>
-              <option value="college">College Towns</option>
-              <option value="vacation">Vacation &amp; Resort Towns</option>
-              <option value="extractive">Agricultural &amp; Energy Towns</option>
-              <option value="all">All Town Types</option>
-            </select>
-          </div>
-        </div>
+            <div class="filter-group">
+              <label class="filter-label" for="filter-urbanicity">Community Form</label>
+              <select id="filter-urbanicity" class="filter-select">
+                <option value="all">All Forms</option>
+                <option value="urban">Urban</option>
+                <option value="suburban">Suburban</option>
+                <option value="rural">Rural</option>
+              </select>
+            </div>
 
-        <!-- Compact 1-Line Undo Toast -->
+            <div class="filter-group">
+              <label class="filter-label" for="filter-regime">Town Type</label>
+              <select id="filter-regime" class="filter-select">
+                <option value="all">All Town Types</option>
+                <option value="standard">Standard</option>
+                <option value="college">College</option>
+                <option value="vacation">Vacation &amp; Resort</option>
+                <option value="extractive">Agricultural &amp; Energy</option>
+              </select>
+            </div>
+
+            <div class="filter-actions">
+              <button id="restore-all-btn" type="button" class="text-button" hidden>Restore Dismissed</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Undo Banner for Pin / Dismiss / Program Delete -->
         <div id="undo-toast" class="undo-toast" hidden></div>
 
-        <!-- Queue Status Header -->
-        <div id="queue-bar" class="queue-bar"></div>
-
-        <!-- Clean Peer Cards -->
+        <!-- Cards Grid + Expand Button -->
         <div id="cards" class="cards"></div>
+        <div id="expand-wrap" class="expand-wrap"></div>
 
-        <!-- Clean 2-Tab Detail Panel -->
+        <!-- Three-Tab Detail View -->
         <div id="detail"></div>
       </div>
 
-      <!-- VIEW 2: PNC TOOLKIT -->
+      <!-- Unified Institution Programs View -->
       <div id="toolkit" hidden></div>
+
+      <footer>
+        Common Ground · Evidence-informed decision support
+        <span>Peer divergence &amp; program matching prototype</span>
+      </footer>
     </main>
   </div>
 </body>

@@ -1,18 +1,24 @@
-// Common Ground | PNC Housing Opportunity & AI Toolkit Matcher
-// Enterprise UI logic (Zero emojis, explicit Target vs. Benchmark hierarchy)
+// Common Ground | Housing Opportunity Intelligence
+// Preserves original Impact Score system & readability + unified Institution Programs
 
 const $ = (id) => document.getElementById(id);
 
 let selectedCaseId = "sonoma-lake";
+let searchQuery = "";
+let sortBy = "impact"; // "impact" | "affordability" | "access"
 let filterAxis = "all";
 let filterUrbanicity = "all";
-let filterRegime = "core";
-let currentTab = "matcher";
+let filterRegime = "all";
+let showAllCards = false;
+let currentTab = "matching"; // "matching" | "peers" | "score"
 
+let pinnedIds = [];
 let dismissedIds = [];
-let lastDismissed = null;
+let lastAction = null; // { type: 'dismiss'|'pin'|'unpin'|'delete-prog', ... }
+let aiUploadStatus = "";
 
-let tools = PNC_TOOLS.map(t => ({ ...t }));
+// Unified program list (no visual separation between initial and newly added programs)
+let programs = INITIAL_PROGRAMS.map(p => ({ ...p }));
 
 function esc(str) {
   if (typeof str !== "string") return str ?? "";
@@ -22,232 +28,160 @@ function esc(str) {
 }
 
 function evaluateCase(c) {
-  const activeTools = tools.filter(t => t.active);
+  const activePrograms = programs.filter(p => p.active);
   const results = c.factors.map(f => {
-    const matched = activeTools.find(t => t.tags.includes(f.required_tag));
-    const suggestedCustom =
-      tools.find(t => t.id === f.suggested_custom_id || t.tags.includes(f.required_tag)) ||
-      SUGGESTED_CUSTOM_TOOLS.find(t => t.id === f.suggested_custom_id || t.tags.includes(f.required_tag));
+    const matched = activePrograms.find(p => p.tags.includes(f.required_tag));
     return {
       factor: f,
-      matchedTool: matched || null,
-      suggestedTool: suggestedCustom || null
+      matchedProgram: matched || null
     };
   });
-  const solved = results.filter(r => r.matchedTool).length;
-  return { solved, total: results.length, allSolved: solved === results.length, results };
+
+  const solved = results.filter(r => r.matchedProgram).length;
+  const total = results.length;
+  const coverageRatio = total > 0 ? solved / total : 0;
+
+  // Consistent, auditable 1-5 rating for Program-to-Factor Coverage
+  const coverageRating = Number((1.0 + 4.0 * coverageRatio).toFixed(1));
+
+  const ratings = {
+    gap: c.base_ratings.gap,
+    coverage: coverageRating,
+    leverage: c.base_ratings.leverage,
+    feasibility: c.base_ratings.feasibility,
+    evidence: c.base_ratings.evidence
+  };
+
+  // Weighted 0-100 Impact Match Score
+  const impactScore = Math.round(
+    SCORE_RUBRIC_FACTORS.reduce((sum, rf) => {
+      return sum + (ratings[rf.key] / 5) * rf.weight;
+    }, 0)
+  );
+
+  return {
+    solved,
+    total,
+    allSolved: solved === total,
+    ratings,
+    impactScore,
+    results
+  };
 }
 
-function getActivePoolAndQueue() {
-  const primaryCases = CASES.filter(c => !c.is_backup);
-  const backupCases = CASES.filter(c => c.is_backup);
+function getFilteredAndSortedCases() {
+  const q = searchQuery.trim().toLowerCase();
 
-  // Only promote backup queue clusters when primary core clusters have been explicitly dismissed
-  const dismissedPrimaryCoreCount = primaryCases.filter(
-    c => c.market_regime === "core" && dismissedIds.includes(c.id)
-  ).length;
-
-  const availableBackups = backupCases.filter(b => !dismissedIds.includes(b.id));
-  const promotedBackups = availableBackups.slice(0, dismissedPrimaryCoreCount);
-  const remainingQueue = availableBackups.slice(dismissedPrimaryCoreCount);
-
-  const activePool = [
-    ...primaryCases.filter(c => !dismissedIds.includes(c.id)),
-    ...promotedBackups
-  ];
-
-  const visible = activePool.filter(c => {
-    if (filterRegime !== "all" && c.market_regime !== filterRegime) return false;
+  const matching = CASES.filter(c => {
+    if (dismissedIds.includes(c.id)) return false;
     if (filterAxis !== "all" && c.divergence_axis !== filterAxis) return false;
     if (filterUrbanicity !== "all" && c.urbanicity !== filterUrbanicity) return false;
-    return true;
-  }).slice(0, 4);
-
-  const matchingQueue = remainingQueue.filter(c => {
     if (filterRegime !== "all" && c.market_regime !== filterRegime) return false;
-    if (filterAxis !== "all" && c.divergence_axis !== filterAxis) return false;
-    if (filterUrbanicity !== "all" && c.urbanicity !== filterUrbanicity) return false;
+
+    if (q) {
+      const haystack = [
+        c.target,
+        c.reference,
+        c.category_tag,
+        c.factor_preview,
+        c.summary,
+        ...c.factors.map(f => `${f.title} ${f.why} ${f.local_program}`)
+      ].join(" ").toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   });
 
-  return { visible, remainingQueue, matchingQueue };
+  return matching.sort((a, b) => {
+    const aPinned = pinnedIds.includes(a.id) ? 1 : 0;
+    const bPinned = pinnedIds.includes(b.id) ? 1 : 0;
+    if (aPinned !== bPinned) return bPinned - aPinned;
+
+    if (sortBy === "affordability") return b.aff_score - a.aff_score;
+    if (sortBy === "access") return b.acc_score - a.acc_score;
+    return evaluateCase(b).impactScore - evaluateCase(a).impactScore;
+  });
 }
 
-function getVisibleCases() {
-  return getActivePoolAndQueue().visible;
-}
-
-function dismissCluster(id, e) {
+function togglePinCase(id, e) {
   if (e) e.stopPropagation();
   const c = CASES.find(x => x.id === id);
   if (!c) return;
-  const beforeIds = getVisibleCases().map(x => x.id);
-  dismissedIds.push(id);
-  const after = getVisibleCases();
-  const surfaced = after.find(x => !beforeIds.includes(x.id));
 
-  lastDismissed = {
+  if (pinnedIds.includes(id)) {
+    pinnedIds = pinnedIds.filter(x => x !== id);
+    lastAction = {
+      type: "unpin",
+      id,
+      label: `Unpinned ${c.target}`
+    };
+  } else {
+    pinnedIds.push(id);
+    lastAction = {
+      type: "pin",
+      id,
+      label: `Pinned ${c.target} to front`
+    };
+  }
+  renderAll();
+}
+
+function dismissCase(id, e) {
+  if (e) e.stopPropagation();
+  const c = CASES.find(x => x.id === id);
+  if (!c) return;
+
+  const wasPinned = pinnedIds.includes(id);
+  pinnedIds = pinnedIds.filter(x => x !== id);
+  dismissedIds.push(id);
+
+  lastAction = {
+    type: "dismiss",
     id,
-    title: `${c.target} vs. ${c.reference}`,
-    surfaced: surfaced ? `${surfaced.target} vs. ${surfaced.reference}` : null
+    wasPinned,
+    label: `Dismissed ${c.target} vs. ${c.reference}`
   };
 
-  if (selectedCaseId === id && after.length > 0) {
-    selectedCaseId = after[0].id;
+  const remaining = getFilteredAndSortedCases();
+  if (selectedCaseId === id && remaining.length > 0) {
+    selectedCaseId = remaining[0].id;
   }
   renderAll();
 }
 
-function undoDismiss() {
-  if (!lastDismissed) return;
-  dismissedIds = dismissedIds.filter(id => id !== lastDismissed.id);
-  selectedCaseId = lastDismissed.id;
-  lastDismissed = null;
-  renderAll();
-}
-
-function restoreAll() {
-  dismissedIds = [];
-  lastDismissed = null;
-  renderAll();
-}
-
-function toggleTool(id) {
-  const t = tools.find(x => x.id === id);
-  if (t) {
-    t.active = !t.active;
-    renderAll();
-  }
-}
-
-function enableToolById(id) {
-  let t = tools.find(x => x.id === id);
-  if (!t) {
-    const template = SUGGESTED_CUSTOM_TOOLS.find(x => x.id === id);
-    if (template) {
-      t = { ...template, active: true };
-      tools.push(t);
+function undoLastAction() {
+  if (!lastAction) return;
+  if (lastAction.type === "dismiss") {
+    dismissedIds = dismissedIds.filter(id => id !== lastAction.id);
+    if (lastAction.wasPinned && !pinnedIds.includes(lastAction.id)) {
+      pinnedIds.push(lastAction.id);
     }
-  } else {
-    t.active = true;
+    selectedCaseId = lastAction.id;
+  } else if (lastAction.type === "pin") {
+    pinnedIds = pinnedIds.filter(id => id !== lastAction.id);
+  } else if (lastAction.type === "unpin") {
+    if (!pinnedIds.includes(lastAction.id)) pinnedIds.push(lastAction.id);
+  } else if (lastAction.type === "delete-prog") {
+    programs.splice(lastAction.index, 0, lastAction.program);
   }
-  renderAll();
-}
-
-function removeCustomTool(id, e) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  tools = tools.filter(x => x.id !== id);
+  lastAction = null;
   renderAll();
 }
 
 function closeUndoToast() {
-  lastDismissed = null;
-  renderTopStatus();
+  lastAction = null;
+  renderStatusAndToast();
 }
 
-function renderTopStatus() {
-  const activeCount = tools.filter(t => t.active).length;
-  $("toolkit-count-pill").textContent = `${activeCount} Active`;
-
-  const restoreBtn = $("restore-all-btn");
-  if (dismissedIds.length > 0) {
-    restoreBtn.hidden = false;
-    restoreBtn.textContent = `Restore Dismissed (${dismissedIds.length})`;
-  } else {
-    restoreBtn.hidden = true;
-  }
-
-  const toast = $("undo-toast");
-  if (lastDismissed) {
-    toast.hidden = false;
-    toast.innerHTML = `
-      <span>
-        Dismissed <strong>${esc(lastDismissed.title)}</strong>
-        ${lastDismissed.surfaced ? ` &middot; Surfaced next match: <strong>${esc(lastDismissed.surfaced)}</strong>` : ""}
-      </span>
-      <div class="toast-btns">
-        <button type="button" class="btn-undo" onclick="undoDismiss()">Undo</button>
-        <button type="button" class="btn-close-toast" onclick="closeUndoToast()" aria-label="Close">Close</button>
-      </div>
-    `;
-  } else {
-    toast.hidden = true;
-    toast.innerHTML = "";
-  }
+function restoreAllDismissed() {
+  dismissedIds = [];
+  lastAction = null;
+  renderAll();
 }
 
-function renderCards() {
-  const container = $("cards");
-  const queueBar = $("queue-bar");
-  const { visible, remainingQueue } = getActivePoolAndQueue();
-
-  if (queueBar) {
-    const queueCount = filterRegime === "core" || filterRegime === "all" ? remainingQueue.length : 0;
-    queueBar.innerHTML = `
-      <span>
-        Showing <strong>${visible.length} Active Peer Cluster${visible.length === 1 ? "" : "s"}</strong>
-        ${queueCount > 0
-          ? ` &middot; <span class="queue-hint">${queueCount} more ranked cluster${queueCount === 1 ? "" : "s"} in queue &mdash; dismiss any card to pull next match</span>`
-          : (dismissedIds.length > 0 ? ` &middot; <span class="queue-hint">All queued clusters surfaced</span>` : "")}
-      </span>
-    `;
-  }
-
-  if (visible.length === 0) {
-    container.innerHTML = `
-      <div class="empty-box">
-        <p>No peer communities match this filter combination.</p>
-        <button class="btn-reset" onclick="resetAllFilters()">Reset Filters</button>
-      </div>
-    `;
-    return;
-  }
-
-  if (!visible.some(c => c.id === selectedCaseId)) {
-    selectedCaseId = visible[0].id;
-  }
-
-  container.innerHTML = visible.map(c => {
-    const isSel = c.id === selectedCaseId;
-    const ev = evaluateCase(c);
-    return `
-      <div class="card ${isSel ? "selected" : ""}" onclick="selectCase('${c.id}')">
-        <div class="card-top">
-          <div class="card-tag-wrap">
-            <span class="card-tag">${esc(c.category_tag)}</span>
-            ${c.is_backup ? `<span class="queue-badge">From Queue</span>` : ""}
-          </div>
-          <div class="card-actions">
-            <span class="match-pill ${ev.allSolved ? "pill-ok" : "pill-gap"}">
-              ${ev.solved}/${ev.total} Factors Matched
-            </span>
-            <button type="button" class="btn-x" title="Dismiss cluster and surface next peer match" onclick="dismissCluster('${c.id}', event)">Dismiss</button>
-          </div>
-        </div>
-        <h3 class="card-title">
-          ${esc(c.target)}
-          <span class="card-peer-sub">vs. peer ${esc(c.reference)}</span>
-        </h3>
-        <div class="card-metrics-grid">
-          <div class="cm-item">
-            <span class="cm-label">Peer Baseline Match</span>
-            <span class="cm-val">${esc(c.peer_baseline)}</span>
-          </div>
-          <div class="cm-item">
-            <span class="cm-label">Quantitative Metric Gap</span>
-            <span class="cm-val cm-gap">${esc(c.metric_gap)}</span>
-          </div>
-        </div>
-        <div class="card-qual-row">
-          <span class="cm-label">AI-Researched Qualitative Drivers:</span>
-          <span class="cm-qual-val">${esc(c.qualitative_drivers)}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+function toggleShowAllCards() {
+  showAllCards = !showAllCards;
+  renderCards();
 }
 
 function selectCase(id) {
@@ -261,16 +195,159 @@ function switchTab(tab) {
 }
 
 function resetAllFilters() {
+  searchQuery = "";
+  sortBy = "impact";
   filterAxis = "all";
   filterUrbanicity = "all";
-  filterRegime = "core";
+  filterRegime = "all";
   dismissedIds = [];
-  lastDismissed = null;
-  document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(b => {
+  lastAction = null;
+  $("search-input").value = "";
+  $("sort-select").value = "impact";
+  $("filter-urbanicity").value = "all";
+  $("filter-regime").value = "all";
+  document.querySelectorAll("[data-filter-group='axis'] button").forEach(b => {
     b.classList.toggle("selected", b.dataset.val === "all");
   });
-  $("filter-urbanicity").value = "all";
-  $("filter-regime").value = "core";
+  renderAll();
+}
+
+function renderStatusAndToast() {
+  const activeCount = programs.filter(p => p.active).length;
+  $("program-count-pill").textContent = `${activeCount}`;
+
+  const restoreBtn = $("restore-all-btn");
+  if (dismissedIds.length > 0) {
+    restoreBtn.hidden = false;
+    restoreBtn.textContent = `Restore Dismissed (${dismissedIds.length})`;
+  } else {
+    restoreBtn.hidden = true;
+  }
+
+  const toast = $("undo-toast");
+  if (lastAction) {
+    toast.hidden = false;
+    toast.innerHTML = `
+      <span>${esc(lastAction.label)}</span>
+      <div class="toast-btns">
+        <button type="button" class="btn-undo" onclick="undoLastAction()">Undo</button>
+        <button type="button" class="btn-close-toast" onclick="closeUndoToast()">Close</button>
+      </div>
+    `;
+  } else {
+    toast.hidden = true;
+    toast.innerHTML = "";
+  }
+}
+
+function renderCards() {
+  const container = $("cards");
+  const expandWrap = $("expand-wrap");
+  const allMatching = getFilteredAndSortedCases();
+
+  if (allMatching.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>No peer communities match your current search or filter settings.</p>
+        <button type="button" onclick="resetAllFilters()">Reset Search &amp; Filters</button>
+      </div>
+    `;
+    expandWrap.innerHTML = "";
+    return;
+  }
+
+  const visible = showAllCards ? allMatching : allMatching.slice(0, 4);
+
+  if (!visible.some(c => c.id === selectedCaseId)) {
+    selectedCaseId = visible[0].id;
+  }
+
+  container.innerHTML = visible.map((c, idx) => {
+    const isSel = c.id === selectedCaseId;
+    const isPinned = pinnedIds.includes(c.id);
+    const ev = evaluateCase(c);
+
+    return `
+      <article
+        class="card ${isSel ? "active" : ""} ${isPinned ? "card-pinned" : ""}"
+        onclick="selectCase('${c.id}')"
+        role="button"
+        tabindex="0"
+        aria-pressed="${isSel}"
+      >
+        <div class="card-top">
+          <div class="eyebrow">${esc(c.category_tag)}</div>
+          <div class="card-actions">
+            <button
+              type="button"
+              class="card-act-btn ${isPinned ? "act-pinned" : ""}"
+              onclick="togglePinCase('${c.id}', event)"
+              title="${isPinned ? "Unpin card" : "Pin card to front"}"
+            >
+              ${isPinned ? "Pinned" : "Pin"}
+            </button>
+            <button
+              type="button"
+              class="card-act-btn act-dismiss"
+              onclick="dismissCase('${c.id}', event)"
+              title="Dismiss card"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+
+        <h3>${esc(c.target)}</h3>
+        <div class="state">vs. peer ${esc(c.reference)}</div>
+
+        <div class="card-hero-row">
+          <div class="score">
+            ${ev.impactScore} <small>/ 100</small>
+          </div>
+          <span class="badge ${ev.allSolved ? "badge-ok" : "amber"}">
+            ${ev.solved}/${ev.total} factors matched
+          </span>
+        </div>
+
+        <div class="card-rank-scores">
+          Affordability burden: <strong>${c.aff_score}</strong> &middot; Access burden: <strong>${c.acc_score}</strong>
+        </div>
+
+        <div class="desc">${esc(c.factor_preview)}</div>
+      </article>
+    `;
+  }).join("");
+
+  if (allMatching.length > 4) {
+    const hiddenCount = allMatching.length - 4;
+    expandWrap.innerHTML = `
+      <button type="button" class="btn-expand" onclick="toggleShowAllCards()">
+        ${showAllCards
+          ? "Show Top 4 Opportunities Only"
+          : `Show All ${allMatching.length} Opportunities (+${hiddenCount} more)`}
+      </button>
+    `;
+  } else {
+    expandWrap.innerHTML = "";
+  }
+}
+
+function quickAddTemplateProgram(templateKey) {
+  const tpl = AI_UPLOAD_TEMPLATES[templateKey];
+  if (!tpl) return;
+
+  const existing = programs.find(p => p.tags.includes(tpl.tag));
+  if (existing) {
+    existing.active = true;
+  } else {
+    programs.push({
+      id: "prog-" + Date.now(),
+      name: tpl.name,
+      active: true,
+      tags: [tpl.tag],
+      desc: tpl.desc
+    });
+  }
   renderAll();
 }
 
@@ -284,79 +361,84 @@ function renderDetail() {
 
   const ev = evaluateCase(c);
 
-  let bodyHTML = "";
-  if (currentTab === "matcher") {
-    bodyHTML = `
-      <div class="match-table-wrap">
-        <div class="match-grid-head">
-          <div>1. Divergence Factor (${esc(c.target)} vs. ${esc(c.reference)})</div>
-          <div>2. Local Govt Subsidy (Auto-Researched)</div>
-          <div>3. Matched PNC Tool (From Toolkit)</div>
+  let panelHTML = "";
+
+  if (currentTab === "matching") {
+    panelHTML = `
+      <div class="match-head-note">
+        <div>
+          <h3>Explicit Divergence Factor to Program Matching</h3>
+          <p class="body">Each local divergence factor identified between <strong>${esc(c.target)}</strong> and <strong>${esc(c.reference)}</strong> is paired with available local government subsidies and active programs from your catalog.</p>
         </div>
-
-        ${ev.results.map(r => {
-          const f = r.factor;
-          const m = r.matchedTool;
-          return `
-            <div class="match-row ${m ? "row-solved" : "row-unsolved"}">
-              <div class="col-factor">
-                <h4>${esc(f.title)}</h4>
-                <div class="factor-metric-badge">${esc(f.metrics)}</div>
-                <p>${esc(f.why)}</p>
-              </div>
-
-              <div class="col-local">
-                <span class="col-mini-tag tag-local">LOCAL SUBSIDY</span>
-                <div class="local-title">${esc(f.local_program)}</div>
-                <p>${esc(f.local_desc)}</p>
-              </div>
-
-              <div class="col-tool">
-                ${m ? `
-                  <span class="col-mini-tag ${m.isCustom ? "tag-custom" : "tag-matched"}">
-                    ${m.isCustom ? "MATCHED CUSTOM TOOL" : "MATCHED PNC TOOL"}
-                  </span>
-                  <div class="tool-matched-title">${esc(m.name)}</div>
-                  <p>${esc(f.action)}</p>
-                ` : `
-                  <span class="col-mini-tag tag-unmatched">UNMATCHED FACTOR</span>
-                  <div class="tool-unmatched-label">No Matching Tool in Standard PNC Toolkit</div>
-                  <p class="unmatched-sub">Standard tools do not directly address this divergence barrier.</p>
-                  ${r.suggestedTool ? `
-                    <button class="btn-add-custom-inline" onclick="enableToolById('${r.suggestedTool.id}')">
-                      + Enable Custom Tool: "${esc(r.suggestedTool.name)}"
-                    </button>
-                  ` : `
-                    <button class="btn-add-custom-inline" onclick="openToolkit()">
-                      + Add Custom Tool in Toolkit
-                    </button>
-                  `}
-                `}
-              </div>
-            </div>
-          `;
-        }).join("")}
+        <button type="button" onclick="openProgramsView()">Manage Institution Programs (${programs.filter(p => p.active).length})</button>
       </div>
+
+      <div class="match-grid-head">
+        <div>1. Divergence Factor &amp; Local Evidence</div>
+        <div>2. Local Government Subsidy</div>
+        <div>3. Matched Institution Program</div>
+      </div>
+
+      ${ev.results.map(r => {
+        const f = r.factor;
+        const m = r.matchedProgram;
+        const tpl = AI_UPLOAD_TEMPLATES[f.suggested_template];
+        return `
+          <div class="match-row ${m ? "row-solved" : "row-unsolved"}">
+            <div class="col-factor">
+              <h4>${esc(f.title)}</h4>
+              <span class="badge">${esc(f.metrics)}</span>
+              <p class="body">${esc(f.why)}</p>
+            </div>
+
+            <div class="col-local">
+              <div class="eyebrow">LOCAL SUBSIDY</div>
+              <h4>${esc(f.local_program)}</h4>
+              <p class="body">${esc(f.local_desc)}</p>
+            </div>
+
+            <div class="col-prog">
+              ${m ? `
+                <div class="eyebrow">MATCHED PROGRAM</div>
+                <h4>${esc(m.name)}</h4>
+                <p class="body">${esc(f.action)}</p>
+              ` : `
+                <div class="eyebrow eyebrow-amber">UNMATCHED FACTOR</div>
+                <h4>No Active Program Matched</h4>
+                <p class="body">Current active programs do not directly solve this barrier.</p>
+                ${tpl ? `
+                  <button type="button" class="btn-inline-add" onclick="quickAddTemplateProgram('${f.suggested_template}')">
+                    + Add "${esc(tpl.name)}"
+                  </button>
+                ` : `
+                  <button type="button" class="btn-inline-add" onclick="openProgramsView()">
+                    + Add Program in Catalog
+                  </button>
+                `}
+              `}
+            </div>
+          </div>
+        `;
+      }).join("")}
     `;
-  } else {
-    bodyHTML = `
-      <p class="peer-note">
-        <strong>Community Form:</strong> Share of county households in Suburban, Urban, and Rural census tracts. 
-        <strong>Affordability &amp; Access Burden (0–100):</strong> National percentile ranks where higher scores indicate worse housing burden.
+  } else if (currentTab === "peers") {
+    panelHTML = `
+      <h3>${esc(c.category_tag)} · Peer Group Comparison</h3>
+      <p class="body">
+        Counties are grouped by baseline socioeconomic similarity (median income, population scale, and urban/suburban/rural form) so outcome differences reflect local housing and lending conditions. Higher burden scores (0–100 percentile) indicate worse outcomes.
       </p>
       <div class="table-wrap">
-        <table class="peer-table">
+        <table>
           <thead>
             <tr>
-              <th>County</th>
-              <th>Community Form (Suburban / Urban / Rural)</th>
-              <th>Population</th>
-              <th>Median Income</th>
-              <th>Median Home Value (Ratio)</th>
+              <th>Community</th>
+              <th>Community Form</th>
+              <th>Population (Median Income)</th>
               <th>Affordability Burden</th>
               <th>Access Burden</th>
+              <th>Home Value (Price/Income)</th>
+              <th>Purchase Denials</th>
               <th>Affordable Units / LMI HH</th>
-              <th>Mortgage Denials</th>
             </tr>
           </thead>
           <tbody>
@@ -364,83 +446,122 @@ function renderDetail() {
               const isTarget = p.name === c.target;
               const isRef = p.name === c.reference;
               return `
-                <tr class="${isTarget ? "tr-target" : (isRef ? "tr-ref" : "")}">
-                  <td class="col-county-cell">
-                    ${isTarget ? `<div class="t-badge-line"><span class="t-badge tb-target">TARGET</span></div>` : ""}
-                    ${isRef ? `<div class="t-badge-line"><span class="t-badge tb-ref">PEER BENCHMARK</span></div>` : ""}
-                    <div class="county-name-line"><strong>${esc(p.name)}</strong></div>
-                  </td>
+                <tr class="${isTarget ? "target" : (isRef ? "ref-row" : "")}">
                   <td>
-                    <div class="form-text">${esc(p.form)}</div>
-                    <div class="mini-bar">
-                      <span class="mb-s" style="width:${p.s}%"></span>
-                      <span class="mb-u" style="width:${p.u}%"></span>
-                      <span class="mb-r" style="width:${p.r}%"></span>
-                    </div>
+                    ${isTarget ? `<div class="row-tag-line"><span class="row-badge badge-target">TARGET</span></div>` : ""}
+                    ${isRef ? `<div class="row-tag-line"><span class="row-badge badge-ref">PEER BENCHMARK</span></div>` : ""}
+                    <div>${esc(p.name)}</div>
                   </td>
+                  <td>${esc(p.form)}</td>
                   <td>${esc(p.pop)}</td>
-                  <td>${esc(p.inc)}</td>
-                  <td><strong>${esc(p.value)}</strong></td>
-                  <td>${p.aff}th %ile</td>
-                  <td>${p.acc}th %ile</td>
-                  <td><strong>${p.units}</strong></td>
-                  <td><strong>${esc(p.denial)}</strong></td>
+                  <td>${p.aff}</td>
+                  <td>${p.acc}</td>
+                  <td>${esc(p.value)}</td>
+                  <td>${p.denial}%</td>
+                  <td>${p.units}</td>
                 </tr>
               `;
             }).join("")}
           </tbody>
         </table>
       </div>
+      <div class="callout" style="margin-top:16px;">
+        <strong>Scorecard Definitions:</strong> Affordability Burden combines price-to-income (75%) and rent-to-income (25%) national percentiles. Access Burden combines affordable units per LMI household (50%) and HMDA purchase mortgage denial rate (50%).
+      </div>
+    `;
+  } else if (currentTab === "score") {
+    panelHTML = `
+      <div class="two-col">
+        <div>
+          <h3>Five-Factor Impact Score Justification</h3>
+          <p class="body">
+            To avoid arbitrary AI scoring, every community is evaluated on a standardized five-factor rubric:
+            <strong>Impact Score = &Sigma;(Weight &times; Rating / 5)</strong>.
+          </p>
+
+          ${SCORE_RUBRIC_FACTORS.map(rf => {
+            const val = ev.ratings[rf.key];
+            const note = rf.key === "coverage"
+              ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program (${Math.round((ev.solved / ev.total) * 100)}% coverage). ${c.rubric_notes.coverage}`
+              : c.rubric_notes[rf.key];
+
+            return `
+              <div class="factor">
+                <div class="factor-title">
+                  <span>${esc(rf.name)}</span>
+                  <strong>${val.toFixed(1)} / 5.0 &middot; weight ${rf.weight}%</strong>
+                </div>
+                <div class="track"><i style="width:${val * 20}%"></i></div>
+                <p>${esc(note)}</p>
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+        <div>
+          <div class="callout">
+            <strong>Impact Score: ${ev.impactScore} / 100 (${ev.solved}/${ev.total} factors matched)</strong><br>
+            Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Program-to-Factor Coverage (30% weight)</strong> and recalculates the Impact Score.
+          </div>
+
+          <h3>Consistent Scoring Framework</h3>
+          <ul class="list">
+            <li><strong>Peer Divergence Severity (25%):</strong> Anchored to empirical percentile gaps between target and benchmark counties.</li>
+            <li><strong>Program-to-Factor Coverage (30%):</strong> Formula: <code>1.0 + 4.0 &times; (Matched Factors / Total Factors)</code>.</li>
+            <li><strong>Local Subsidy Leverage (20%):</strong> Anchored to verified municipal/state matching funds.</li>
+            <li><strong>Delivery Feasibility (15%) &amp; Evidence Strength (10%):</strong> Grounded in local HUD Consolidated Plans and partner readiness.</li>
+          </ul>
+
+          <h3>Primary Evidence &amp; Sources</h3>
+          ${(c.sources || []).map(k => {
+            const s = SOURCES[k];
+            if (!s) return "";
+            return `
+              <div class="source">
+                <a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])} &nearr;</a><br>
+                ${esc(s[2])}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
     `;
   }
 
   container.innerHTML = `
-    <section class="detail-box">
-      <div class="detail-header">
+    <section class="detail">
+      <div class="detail-head">
         <div>
-          <span class="eyebrow">${esc(c.category_tag)}</span>
-          <h2>
-            Target: ${esc(c.target)}
-            <span class="detail-peer-sub">vs. Peer Benchmark: ${esc(c.reference)}</span>
-          </h2>
+          <div class="eyebrow">SELECTED OPPORTUNITY &middot; ${esc(c.category_tag.toUpperCase())}</div>
+          <h2>${esc(c.target)} <span class="detail-peer-sub">vs. ${esc(c.reference)}</span></h2>
           <p>${esc(c.summary)}</p>
         </div>
-        <button class="btn-outline" onclick="openToolkit()">Configure PNC Toolkit (${tools.filter(t => t.active).length} Active)</button>
-      </div>
-
-      <!-- 3-Box Executive Comparison Strip -->
-      <div class="exec-strip">
-        <div class="exec-item">
-          <span class="exec-label">1. Why They Are Peers (Baseline Match)</span>
-          <strong>${esc(c.strip_match)}</strong>
-        </div>
-        <div class="exec-item">
-          <span class="exec-label">2. Affordability Outcome (${esc(c.target.split(',')[0])} vs. ${esc(c.reference.split(',')[0])})</span>
-          <strong>${esc(c.strip_aff)}</strong>
-        </div>
-        <div class="exec-item">
-          <span class="exec-label">3. Access &amp; Lending Outcome (${esc(c.target.split(',')[0])} vs. ${esc(c.reference.split(',')[0])})</span>
-          <strong>${esc(c.strip_acc)}</strong>
+        <div class="detail-score-box">
+          <div class="score">${ev.impactScore}<small> / 100</small></div>
+          <span class="badge ${ev.allSolved ? "badge-ok" : "amber"}">${ev.solved}/${ev.total} Factors Matched</span>
         </div>
       </div>
 
       <div class="tabs">
-        <button class="tab ${currentTab === "matcher" ? "active" : ""}" onclick="switchTab('matcher')">
-          Divergence Factors &amp; AI Match (${ev.solved}/${ev.total})
+        <button type="button" class="${currentTab === "matching" ? "active" : ""}" onclick="switchTab('matching')">
+          Factor &amp; Program Matching (${ev.solved}/${ev.total})
         </button>
-        <button class="tab ${currentTab === "peers" ? "active" : ""}" onclick="switchTab('peers')">
-          5-County Peer Comparison Table
+        <button type="button" class="${currentTab === "peers" ? "active" : ""}" onclick="switchTab('peers')">
+          Peer Comparison
+        </button>
+        <button type="button" class="${currentTab === "score" ? "active" : ""}" onclick="switchTab('score')">
+          Impact Score Justification
         </button>
       </div>
 
-      <div class="detail-body">
-        ${bodyHTML}
+      <div class="panel">
+        ${panelHTML}
       </div>
     </section>
   `;
 }
 
-function openToolkit() {
+function openProgramsView() {
   document.querySelectorAll("[data-view]").forEach(b => {
     b.classList.toggle("active", b.dataset.view === "toolkit");
   });
@@ -449,145 +570,203 @@ function openToolkit() {
   renderToolkit();
 }
 
-function addCustomToolFromForm(e) {
-  e.preventDefault();
-  const name = $("ct-name").value.trim();
-  const tag = $("ct-tag").value;
-  const desc = $("ct-desc").value.trim();
-  if (!name) return;
-
-  const existingCustom = tools.find(
-    t => t.isCustom && (t.name.toLowerCase() === name.toLowerCase() || t.tags.includes(tag))
-  );
-
-  if (existingCustom) {
-    existingCustom.name = name;
-    existingCustom.desc = desc || existingCustom.desc;
-    existingCustom.active = true;
-  } else {
-    tools.push({
-      id: "custom-" + Date.now(),
-      name,
-      category: "Custom Tool",
-      active: true,
-      isCustom: true,
-      tags: [tag],
-      desc: desc || "Custom PNC tool added to solve local divergence barriers."
-    });
+function toggleProgramActive(id) {
+  const p = programs.find(x => x.id === id);
+  if (p) {
+    p.active = !p.active;
+    renderAll();
   }
+}
 
-  $("ct-name").value = "";
-  $("ct-desc").value = "";
+function deleteProgram(id, e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const idx = programs.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const [removed] = programs.splice(idx, 1);
+  lastAction = {
+    type: "delete-prog",
+    program: removed,
+    index: idx,
+    label: `Deleted program "${removed.name}"`
+  };
   renderAll();
 }
 
-function quickFill(type) {
-  if (type === "sonoma") {
-    $("ct-name").value = "Hospital & Teacher Down-Payment + Backyard ADU Loan";
-    $("ct-tag").value = "workforce-adu";
-    $("ct-desc").value = "Pairs a $25,000 shared-equity down-payment match for essential workers with a backyard ADU loan to bypass Prop 13 resale freezes.";
-  } else if (type === "lafayette") {
-    $("ct-name").value = "Fortified-Roof Grant & Insurance-Relief Bridge Loan";
-    $("ct-tag").value = "flood-insurance-dti";
-    $("ct-desc").value = "Advances Louisiana's $10,000 Fortified Roof Grant at closing so buyers immediately lock in 30% lower insurance and pass DTI limits.";
-  } else if (type === "bernalillo") {
-    $("ct-name").value = "Small-Dollar Starter & Casita Rehab Mortgage (<$150k)";
-    $("ct-tag").value = "small-dollar-rehab";
-    $("ct-desc").value = "Low-fee mortgage designed for sub-$150k starter home acquisition-rehab and backyard casita infill.";
+function addProgramFromForm(e) {
+  e.preventDefault();
+  const name = $("prog-name").value.trim();
+  const tag = $("prog-tag").value;
+  const desc = $("prog-desc").value.trim();
+  if (!name) return;
+
+  programs.push({
+    id: "prog-" + Date.now(),
+    name,
+    active: true,
+    tags: [tag],
+    desc: desc || "Institution program configured for local divergence factor matching."
+  });
+
+  $("prog-name").value = "";
+  $("prog-desc").value = "";
+  aiUploadStatus = "";
+  renderAll();
+}
+
+function fillFromTemplate(key) {
+  const tpl = AI_UPLOAD_TEMPLATES[key];
+  if (!tpl) return;
+  $("prog-name").value = tpl.name;
+  $("prog-tag").value = tpl.tag;
+  $("prog-desc").value = tpl.desc;
+  aiUploadStatus = `AI extracted program details from "${tpl.fileName}" — review and click Add Program.`;
+  const statusEl = $("ai-upload-status");
+  if (statusEl) {
+    statusEl.hidden = false;
+    statusEl.textContent = aiUploadStatus;
+  }
+}
+
+function handleDocumentUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const fname = file.name.toLowerCase();
+
+  let tpl = AI_UPLOAD_TEMPLATES.workforce_adu;
+  if (fname.includes("roof") || fname.includes("flood") || fname.includes("lafayette") || fname.includes("insur")) {
+    tpl = AI_UPLOAD_TEMPLATES.roof_bridge;
+  } else if (fname.includes("small") || fname.includes("casita") || fname.includes("rehab")) {
+    tpl = AI_UPLOAD_TEMPLATES.small_dollar;
+  }
+
+  $("prog-name").value = tpl.name;
+  $("prog-tag").value = tpl.tag;
+  $("prog-desc").value = tpl.desc;
+  aiUploadStatus = `AI parsed "${file.name}" and auto-filled program parameters below.`;
+  const statusEl = $("ai-upload-status");
+  if (statusEl) {
+    statusEl.hidden = false;
+    statusEl.textContent = aiUploadStatus;
   }
 }
 
 function renderToolkit() {
   const container = $("toolkit");
-  const existing = tools.filter(t => !t.isCustom);
-  const custom = tools.filter(t => t.isCustom);
+
+  const tagLabels = {
+    "supply-lihtc": "Multifamily Supply & LIHTC Preservation",
+    "infill-dev": "Infill Development",
+    "cdfi-predev": "CDFI Pre-Development & Rehab Credit",
+    "rehab-credit": "Rehabilitation Credit",
+    "dpa-grant": "Down-Payment & Closing Grant",
+    "low-downpayment": "Low Down-Payment Mortgage",
+    "credit-readiness": "Credit Readiness",
+    "borrower-retention": "Borrower Hardship & Retention",
+    "workforce-adu": "Workforce Down-Payment & ADU Infill",
+    "flood-insurance-dti": "Flood/Roof Grant Bridge & DTI Relief",
+    "small-dollar-rehab": "Small-Dollar Starter & Casita Rehab (<$150k)"
+  };
 
   container.innerHTML = `
-    <div class="top-bar">
+    <div class="workspace-head" style="margin-bottom:18px;">
       <div>
-        <h1>PNC Toolkit &amp; Custom Tools</h1>
-        <p class="sub">Check which tools PNC offers in the target market, or add a custom tool to solve open divergence factors.</p>
+        <div class="eyebrow">INSTITUTION CAPABILITIES</div>
+        <h2>Institution Programs</h2>
+        <p>Manage active lending, grant, and tax-credit programs used to match community divergence factors.</p>
       </div>
-      <button class="btn-outline" onclick="document.querySelector('[data-view=matches]').click()">Back to Peer Communities</button>
+      <button type="button" onclick="document.querySelector('[data-view=matches]').click()">
+        Back to Community Matches
+      </button>
     </div>
 
-    <div class="toolkit-layout">
-      <div>
-        <h3 class="sec-h">PNC Existing Tools</h3>
-        <div class="tool-list">
-          ${existing.map(t => `
-            <label class="tool-card ${t.active ? "tc-on" : "tc-off"}">
-              <input type="checkbox" ${t.active ? "checked" : ""} onchange="toggleTool('${t.id}')">
-              <div>
-                <div class="tc-head">
-                  <strong>${esc(t.name)}</strong>
-                  <span class="tc-badge">PNC Verified</span>
-                </div>
-                <p>${esc(t.desc)}</p>
-              </div>
-            </label>
-          `).join("")}
+    ${lastAction ? `
+      <div class="undo-toast" style="margin-bottom:16px;">
+        <span>${esc(lastAction.label)}</span>
+        <div class="toast-btns">
+          <button type="button" class="btn-undo" onclick="undoLastAction()">Undo</button>
+          <button type="button" class="btn-close-toast" onclick="closeUndoToast()">Close</button>
         </div>
+      </div>
+    ` : ""}
 
-        <h3 class="sec-h" style="margin-top:22px;">Custom Tools (Added / Specialized Programs)</h3>
-        <div class="tool-list">
-          ${custom.length === 0 ? `
-            <div class="empty-custom-box">
-              No custom tools added yet. Use <strong>Add New Custom Tool</strong> on the right (or Quick Fill) to demo adding a specialized lending program.
-            </div>
-          ` : custom.map(t => `
-            <label class="tool-card ${t.active ? "tc-on" : "tc-off"}">
-              <input type="checkbox" ${t.active ? "checked" : ""} onchange="toggleTool('${t.id}')">
-              <div style="flex:1;">
-                <div class="tc-head" style="justify-content:space-between;">
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <strong>${esc(t.name)}</strong>
-                    <span class="tc-badge badge-orange">Custom Tool</span>
+    <div class="programs-layout">
+      <div>
+        <h3 style="margin-top:0;">Program Catalog (${programs.length})</h3>
+        <div class="program-list">
+          ${programs.map(p => {
+            const primaryTag = p.tags[0];
+            const tagLabel = tagLabels[primaryTag] || primaryTag;
+            return `
+              <article class="tool-card ${p.active ? "" : "tool-inactive"}">
+                <div class="tool-card-top">
+                  <label class="tool-check-label">
+                    <input type="checkbox" ${p.active ? "checked" : ""} onchange="toggleProgramActive('${p.id}')">
+                    <strong>${esc(p.name)}</strong>
+                  </label>
+                  <div class="tool-card-actions">
+                    <span class="badge">${esc(tagLabel)}</span>
+                    <button type="button" class="card-act-btn act-dismiss" onclick="deleteProgram('${p.id}', event)">Delete</button>
                   </div>
-                  <button type="button" class="btn-x" onclick="removeCustomTool('${t.id}', event)" title="Remove custom tool">Remove</button>
                 </div>
-                <p>${esc(t.desc)}</p>
-              </div>
-            </label>
-          `).join("")}
+                <p>${esc(p.desc)}</p>
+                ${p.sourceKey && SOURCES[p.sourceKey] ? `
+                  <a href="${SOURCES[p.sourceKey][1]}" target="_blank" rel="noopener" class="source-link">Official program source &nearr;</a>
+                ` : ""}
+              </article>
+            `;
+          }).join("")}
         </div>
       </div>
 
-      <div class="add-tool-box">
-        <span class="eyebrow">ADD CUSTOM TOOL</span>
-        <h3>Add New Custom Tool</h3>
-        <p class="sub" style="margin-bottom:12px;">Add a specialized loan or grant rule. The AI immediately checks if it solves any unmatched county divergence factors.</p>
+      <div class="add-program-panel">
+        <div class="eyebrow">ADD PROGRAM</div>
+        <h3>Add Program to Catalog</h3>
+        <p class="small">Enter program details manually or upload a program term sheet / guideline PDF to auto-fill with AI.</p>
 
-        <div class="quick-row">
-          <span>Quick Fill:</span>
-          <button type="button" class="btn-qf" onclick="quickFill('sonoma')">+ Workforce &amp; ADU Loan</button>
-          <button type="button" class="btn-qf" onclick="quickFill('lafayette')">+ Roof Grant Bridge Loan</button>
-          <button type="button" class="btn-qf" onclick="quickFill('bernalillo')">+ Small-Dollar Casita Loan</button>
+        <div class="upload-box">
+          <label class="upload-label" for="doc-upload">
+            <strong>Upload Program Document (Optional AI Auto-Fill)</strong>
+            <span>Drop a PDF, DOCX, or TXT guideline file to extract program fields</span>
+            <input id="doc-upload" type="file" accept=".pdf,.doc,.docx,.txt" onchange="handleDocumentUpload(this)">
+          </label>
+          <div class="sample-docs">
+            <span>Or test with a sample spec sheet:</span>
+            <div class="sample-pills">
+              <button type="button" class="btn-sample" onclick="fillFromTemplate('workforce_adu')">Workforce_ADU_Spec.pdf</button>
+              <button type="button" class="btn-sample" onclick="fillFromTemplate('roof_bridge')">Roof_Grant_Bridge.pdf</button>
+              <button type="button" class="btn-sample" onclick="fillFromTemplate('small_dollar')">Small_Dollar_Rehab.pdf</button>
+            </div>
+          </div>
+          <div id="ai-upload-status" class="ai-status" ${aiUploadStatus ? "" : "hidden"}>${esc(aiUploadStatus)}</div>
         </div>
 
-        <form onsubmit="addCustomToolFromForm(event)" class="ct-form">
+        <form onsubmit="addProgramFromForm(event)" class="prog-form">
           <label>
-            Tool / Program Name
-            <input type="text" id="ct-name" placeholder="e.g., Hospital & Teacher Down-Payment Loan" required>
+            Program Name
+            <input type="text" id="prog-name" placeholder="e.g., Workforce Down-Payment & Backyard ADU Loan" required>
           </label>
 
           <label>
-            Divergence Factor It Solves
-            <select id="ct-tag">
+            Primary Divergence Barrier Addressed
+            <select id="prog-tag">
               <option value="workforce-adu">Workforce Lockout &amp; Prop 13 / ADU Infill (Sonoma)</option>
               <option value="flood-insurance-dti">Flood Insurance DTI Spike &amp; Roof Rehab (Lafayette)</option>
               <option value="small-dollar-rehab">Small-Dollar Casita &amp; Starter Rehab &lt;$150k (Bernalillo)</option>
-              <option value="dpa-grant">Upfront Down-Payment &amp; Closing Cash Hurdle (Bucks)</option>
-              <option value="supply-lihtc">Multifamily Supply &amp; Zoning Infill (All)</option>
+              <option value="dpa-grant">Upfront Down-Payment &amp; Closing Cash Hurdle (Bucks / Jefferson)</option>
+              <option value="supply-lihtc">Multifamily Supply &amp; LIHTC Preservation</option>
+              <option value="cdfi-predev">CDFI Pre-Development &amp; Starter Rehab Credit</option>
             </select>
           </label>
 
           <label>
-            Short Description (Optional)
-            <textarea id="ct-desc" rows="2" placeholder="How this tool works alongside local government subsidies..."></textarea>
+            Program Description &amp; Terms
+            <textarea id="prog-desc" rows="3" placeholder="Describe eligibility, loan/grant structure, and how it pairs with local subsidies..."></textarea>
           </label>
 
-          <button type="submit" class="btn-submit">+ Add Custom Tool to Toolkit</button>
+          <button type="submit" class="btn-primary-add">Add Program</button>
         </form>
       </div>
     </div>
@@ -595,7 +774,7 @@ function renderToolkit() {
 }
 
 function renderAll() {
-  renderTopStatus();
+  renderStatusAndToast();
   renderCards();
   renderDetail();
   if (!$("toolkit").hidden) renderToolkit();
@@ -613,10 +792,22 @@ document.querySelectorAll("[data-view]").forEach(btn => {
   };
 });
 
+// Search & Sort
+$("search-input").oninput = e => {
+  searchQuery = e.target.value;
+  renderCards();
+  renderDetail();
+};
+
+$("sort-select").onchange = e => {
+  sortBy = e.target.value;
+  renderCards();
+};
+
 // Filters
-document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(btn => {
+document.querySelectorAll("[data-filter-group='axis'] button").forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll("[data-filter-group='axis'] .chip").forEach(b => b.classList.remove("selected"));
+    document.querySelectorAll("[data-filter-group='axis'] button").forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
     filterAxis = btn.dataset.val;
     renderAll();
@@ -633,6 +824,6 @@ $("filter-regime").onchange = e => {
   renderAll();
 };
 
-$("restore-all-btn").onclick = restoreAll;
+$("restore-all-btn").onclick = restoreAllDismissed;
 
 renderAll();
