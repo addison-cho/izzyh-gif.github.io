@@ -520,16 +520,16 @@ function renderDetail() {
         <div>
           <div class="callout">
             <strong>Impact Score: ${ev.impactScore} / 100 (${ev.solved}/${ev.total} factors matched)</strong><br>
-            Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Toolkit &amp; Program Alignment (25% weight)</strong> and recalculates the Impact Score.
+            All five dimensions are weighted equally (20% each). Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Toolkit &amp; Program Alignment (20% weight)</strong> and recalculates the Impact Score.
           </div>
 
-          <h3>How Each Dimension Is Evaluated</h3>
+          <h3>How Each Dimension Is Evaluated (20% Equal Weight Each)</h3>
           <ul class="list">
             <li><strong>1. Intervention Potential (20%):</strong> Can the financial institution's actions meaningfully address the barrier?</li>
-            <li><strong>2. Toolkit &amp; Program Alignment (25%):</strong> How well does the institution's toolkit align with the barrier that needs to be directly addressed?</li>
+            <li><strong>2. Toolkit &amp; Program Alignment (20%):</strong> How well does the institution's toolkit align with the barrier that needs to be directly addressed?</li>
             <li><strong>3. Operational Manageability (20%):</strong> Is it manageable for the institution to execute across funding, staffing, and approvals?</li>
             <li><strong>4. Implementation &amp; Expansion Feasibility (20%):</strong> How realistic is it to implement new or expanded programs based on location, size, and business goals?</li>
-            <li><strong>5. Evidence Strength (15%):</strong> How strong is the documented evidence of the barrier being present?</li>
+            <li><strong>5. Evidence Strength (20%):</strong> How strong is the documented evidence of the barrier being present?</li>
           </ul>
 
           <h3>Primary Evidence &amp; Sources</h3>

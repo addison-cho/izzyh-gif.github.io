@@ -11,7 +11,7 @@ const SCORE_RUBRIC_FACTORS = [
   {
     key: "alignment",
     name: "Toolkit & Program Alignment",
-    weight: 25,
+    weight: 20,
     rule: "How well does the institution's active program catalog align with the specific barriers that need to be addressed?"
   },
   {
@@ -29,7 +29,7 @@ const SCORE_RUBRIC_FACTORS = [
   {
     key: "evidence",
     name: "Evidence Strength",
-    weight: 15,
+    weight: 20,
     rule: "How strong is the documented primary evidence proving this barrier is present in the community?"
   }
 ];
