@@ -28,11 +28,10 @@ function esc(str) {
 }
 
 function getTierLabel(scoreVal) {
-  const rounded = Math.round(scoreVal);
-  if (rounded >= 5) return "High Fit";
-  if (rounded === 4) return "Strong Fit";
-  if (rounded === 3) return "Moderate / Conditional";
-  if (rounded === 2) return "Limited";
+  if (scoreVal >= 4.5) return "High Fit";
+  if (scoreVal >= 3.5) return "Strong Fit";
+  if (scoreVal >= 2.5) return "Conditional";
+  if (scoreVal >= 1.5) return "Critical Constraint";
   return "Low Fit";
 }
 
@@ -50,8 +49,8 @@ function evaluateCase(c) {
   const total = results.length;
   const coverageRatio = total > 0 ? solved / total : 0;
 
-  // Clean 1-5 tier rating for Toolkit & Program Alignment
-  const alignmentRating = Math.max(1, Math.round(1 + 4 * coverageRatio));
+  // 0.5-step additive rating (1.0 to 5.0) for Toolkit & Program Alignment
+  const alignmentRating = Math.max(1.0, Math.round((1 + 4 * coverageRatio) * 2) / 2);
 
   const ratings = {
     potential: c.base_ratings.potential,
@@ -502,7 +501,7 @@ function renderDetail() {
         <div>
           <h3>Five-Dimension Impact Score Breakdown</h3>
           <p class="body">
-            Each opportunity is evaluated across five equally weighted dimensions (20% each, up to 20 points per dimension) using a standardized 1–5 rating scale.
+            Each opportunity starts at a <strong>1.0 base</strong> per dimension and earns <strong>+1.0</strong> (full pass) or <strong>+0.5</strong> (partial/constrained pass) across four concrete sub-measures (20% weight each, up to 20 points per dimension). Unmet sub-measures receive <strong>+0.0</strong>.
           </p>
 
           ${SCORE_RUBRIC_FACTORS.map(rf => {
@@ -512,10 +511,13 @@ function renderDetail() {
               ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program in your catalog. ${c.rubric_notes.alignment}`
               : c.rubric_notes[rf.key];
 
+            const alignEarned = (val - 1).toFixed(1);
             const tags = rf.key === "alignment"
               ? [
-                  `${ev.solved} of ${ev.total} Factors Matched`,
-                  ev.allSolved ? "Full Catalog Coverage" : "Unmatched Gap Remaining"
+                  `+${alignEarned} Active Catalog Coverage (${ev.solved}/${ev.total} Factors Matched)`,
+                  ev.allSolved
+                    ? "Full Divergence Coverage"
+                    : `+0.0 Unmatched Divergence Factor (${ev.total - ev.solved} Open Gap)`
                 ]
               : ((c.rubric_tags && c.rubric_tags[rf.key]) || []);
 
@@ -523,13 +525,16 @@ function renderDetail() {
               <div class="factor">
                 <div class="factor-title">
                   <span>${esc(rf.name)}</span>
-                  <strong>${val} / 5 &middot; ${esc(tierLabel)} &middot; ${rf.weight}% weight</strong>
+                  <strong>${val.toFixed(1)} / 5.0 &middot; ${esc(tierLabel)} &middot; ${rf.weight}% weight</strong>
                 </div>
                 <div class="factor-rule">${esc(rf.rule)}</div>
                 <div class="track"><i style="width:${val * 20}%"></i></div>
                 ${tags.length > 0 ? `
                   <div class="submeasure-pills">
-                    ${tags.map(t => `<span class="submeasure-pill">${esc(t)}</span>`).join("")}
+                    ${tags.map(t => {
+                      const isZero = t.startsWith("+0.0");
+                      return `<span class="submeasure-pill ${isZero ? "pill-zero" : ""}">${esc(t)}</span>`;
+                    }).join("")}
                   </div>
                 ` : ""}
                 <p>${esc(note)}</p>

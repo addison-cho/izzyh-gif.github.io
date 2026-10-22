@@ -911,6 +911,12 @@ tr.ref-row {
   color: var(--ink);
 }
 
+.submeasure-pill.pill-zero {
+  background: #f9f3e8;
+  border-color: #e4d4b4;
+  color: #7d5818;
+}
+
 .rating-scale-list {
   display: flex;
   flex-direction: column;
