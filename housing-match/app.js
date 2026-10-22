@@ -299,8 +299,8 @@ function renderCards() {
               title="${isPinned ? "Unpin card" : "Pin card to front"}"
               aria-label="${isPinned ? "Unpin card" : "Pin card"}"
             >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="${isPinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9.5 2.5L13.5 6.5L12 8L9.5 6.5L6.5 9.5L8 12L6.5 13.5L3.5 10.5L1.5 14.5L5.5 12.5L2.5 9.5L4 8L6.5 9.5L9.5 6.5L8 4L9.5 2.5Z"/>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="${isPinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8 3H16V5L14.5 6.5V11L17 13.5V15.5H13V21L12 22L11 21V15.5H7V13.5L9.5 11V6.5L8 5Z"/>
               </svg>
             </button>
             <button
@@ -398,16 +398,15 @@ function renderDetail() {
     panelHTML = `
       <div class="match-head-note">
         <div>
-          <h3>Explicit Divergence Factor to Program Matching</h3>
-          <p class="body">Each local divergence factor identified between <strong>${esc(c.target)}</strong> and <strong>${esc(c.reference)}</strong> is paired with available local government subsidies and active programs from your catalog.</p>
+          <h3>Factor &amp; Program Matching</h3>
+          <p class="body">Each local divergence factor identified between <strong>${esc(c.target)}</strong> and <strong>${esc(c.reference)}</strong> is paired with active programs from your catalog.</p>
         </div>
         <button type="button" onclick="openProgramsView()">Manage Institution Programs (${programs.filter(p => p.active).length})</button>
       </div>
 
       <div class="match-grid-head">
-        <div>1. Divergence Factor &amp; Local Evidence</div>
-        <div>2. Local Government Subsidy</div>
-        <div>3. Matched Institution Program</div>
+        <div>Divergence Factors</div>
+        <div>Matched Institutional Programming</div>
       </div>
 
       ${ev.results.map(r => {
@@ -420,12 +419,6 @@ function renderDetail() {
               <h4>${esc(f.title)}</h4>
               <span class="badge">${esc(f.metrics)}</span>
               <p class="body">${esc(f.why)}</p>
-            </div>
-
-            <div class="col-local">
-              <div class="eyebrow">LOCAL SUBSIDY</div>
-              <h4>${esc(f.local_program)}</h4>
-              <p class="body">${esc(f.local_desc)}</p>
             </div>
 
             <div class="col-prog">
@@ -456,14 +449,14 @@ function renderDetail() {
     panelHTML = `
       <h3>${esc(c.category_tag)} · Peer Group Comparison</h3>
       <p class="body">
-        Counties are grouped by baseline socioeconomic similarity (median income, population scale, and urban/suburban/rural form) so outcome differences reflect local housing and lending conditions. Higher burden scores (0–100 percentile) indicate worse outcomes.
+        Counties are grouped by baseline socioeconomic similarity (median income, population scale, and area type) so outcome differences reflect local housing and lending conditions. Higher burden scores (0–100 percentile) indicate worse outcomes.
       </p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Community</th>
-              <th>Community Form</th>
+              <th>Area Type</th>
               <th>Population (Median Income)</th>
               <th>Affordability Burden</th>
               <th>Access Burden</th>
