@@ -1,4 +1,4 @@
-// Common Ground | Housing Opportunity Intelligence
+// METmatch | Housing Opportunity Intelligence
 // Preserves original impact-score architecture + explicit factor-to-program matching
 
 const SCORE_RUBRIC_FACTORS = [

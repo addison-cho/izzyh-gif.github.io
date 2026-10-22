@@ -1,4 +1,4 @@
-// Common Ground | Housing Opportunity Intelligence
+// METmatch | Housing Opportunity Intelligence
 // Preserves original Impact Score system & readability + unified Institution Programs
 
 const $ = (id) => document.getElementById(id);
