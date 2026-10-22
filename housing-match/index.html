@@ -65,29 +65,20 @@
               >
             </div>
             <div class="sort-wrap">
-              <label for="sort-select">Rank cards by</label>
+              <label for="sort-select">Sort by</label>
               <select id="sort-select">
-                <option value="impact">Impact Match Score (High to Low)</option>
-                <option value="affordability">Affordability Burden Score (High to Low)</option>
-                <option value="access">Access Burden Score (High to Low)</option>
+                <option value="impact">Impact Score (High to Low)</option>
+                <option value="affordability">Affordability Gap (High to Low)</option>
+                <option value="access">Access Gap (High to Low)</option>
               </select>
             </div>
           </div>
 
           <div class="filter-row">
             <div class="filter-group">
-              <span class="filter-label">Gap Type</span>
-              <div class="filters" data-filter-group="axis">
-                <button type="button" class="selected" data-val="all">All</button>
-                <button type="button" data-val="affordability">Affordability Gap</button>
-                <button type="button" data-val="access">Access Gap</button>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <label class="filter-label" for="filter-urbanicity">Community Form</label>
+              <label class="filter-label" for="filter-urbanicity">Setting</label>
               <select id="filter-urbanicity" class="filter-select">
-                <option value="all">All Forms</option>
+                <option value="all">All Settings</option>
                 <option value="urban">Urban</option>
                 <option value="suburban">Suburban</option>
                 <option value="rural">Rural</option>

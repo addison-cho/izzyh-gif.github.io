@@ -444,8 +444,36 @@ h4 {
 
 .card-actions {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   flex-shrink: 0;
+}
+
+.card-icon-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 600;
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.card-icon-btn.act-pinned {
+  background: #e6f4f1;
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+.card-icon-btn.act-dismiss:hover {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
 }
 
 .card-act-btn {
@@ -456,13 +484,6 @@ h4 {
   color: var(--muted);
   background: var(--paper);
   border: 1px solid var(--line);
-}
-
-.card-act-btn.act-pinned {
-  background: #e6f4f1;
-  color: var(--teal);
-  border-color: var(--teal);
-  font-weight: 700;
 }
 
 .card-act-btn.act-dismiss:hover {
@@ -490,6 +511,12 @@ h4 {
   margin-top: 14px;
 }
 
+.score-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .score {
   font: 700 36px Manrope, system-ui;
   letter-spacing: -1px;
@@ -500,6 +527,71 @@ h4 {
   font: 400 11px 'DM Sans', system-ui;
   color: var(--muted);
   letter-spacing: 0;
+}
+
+/* Circular '?' Help Icon & Hover Tooltip */
+.score-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.score-help:hover, .score-help:focus-visible {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+
+.score-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 255px;
+  background: var(--ink);
+  color: white;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  z-index: 30;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.score-tooltip strong {
+  display: block;
+  font-size: 11.5px;
+  margin-bottom: 3px;
+  color: #a7f3d0;
+}
+
+.score-tooltip em {
+  display: block;
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-style: normal;
+  font-size: 10.5px;
+}
+
+.score-help:hover .score-tooltip,
+.score-help:focus-visible .score-tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
 .card-rank-scores {

@@ -74,7 +74,6 @@ function getFilteredAndSortedCases() {
 
   const matching = CASES.filter(c => {
     if (dismissedIds.includes(c.id)) return false;
-    if (filterAxis !== "all" && c.divergence_axis !== filterAxis) return false;
     if (filterUrbanicity !== "all" && c.urbanicity !== filterUrbanicity) return false;
     if (filterRegime !== "all" && c.market_regime !== filterRegime) return false;
 
@@ -97,8 +96,16 @@ function getFilteredAndSortedCases() {
     const bPinned = pinnedIds.includes(b.id) ? 1 : 0;
     if (aPinned !== bPinned) return bPinned - aPinned;
 
-    if (sortBy === "affordability") return b.aff_score - a.aff_score;
-    if (sortBy === "access") return b.acc_score - a.acc_score;
+    if (sortBy === "affordability") {
+      const aGap = a.aff_score - a.peer_aff_score;
+      const bGap = b.aff_score - b.peer_aff_score;
+      return bGap - aGap;
+    }
+    if (sortBy === "access") {
+      const aGap = a.acc_score - a.peer_acc_score;
+      const bGap = b.acc_score - b.peer_acc_score;
+      return bGap - aGap;
+    }
     return evaluateCase(b).impactScore - evaluateCase(a).impactScore;
   });
 }
@@ -194,10 +201,18 @@ function switchTab(tab) {
   renderDetail();
 }
 
+function openScoreJustification(id, e) {
+  if (e) e.stopPropagation();
+  selectedCaseId = id;
+  currentTab = "score";
+  renderAll();
+  const detailEl = $("detail");
+  if (detailEl) detailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function resetAllFilters() {
   searchQuery = "";
   sortBy = "impact";
-  filterAxis = "all";
   filterUrbanicity = "all";
   filterRegime = "all";
   dismissedIds = [];
@@ -206,9 +221,6 @@ function resetAllFilters() {
   $("sort-select").value = "impact";
   $("filter-urbanicity").value = "all";
   $("filter-regime").value = "all";
-  document.querySelectorAll("[data-filter-group='axis'] button").forEach(b => {
-    b.classList.toggle("selected", b.dataset.val === "all");
-  });
   renderAll();
 }
 
@@ -262,10 +274,12 @@ function renderCards() {
     selectedCaseId = visible[0].id;
   }
 
-  container.innerHTML = visible.map((c, idx) => {
+  container.innerHTML = visible.map((c) => {
     const isSel = c.id === selectedCaseId;
     const isPinned = pinnedIds.includes(c.id);
     const ev = evaluateCase(c);
+    const affGap = (c.aff_score - c.peer_aff_score).toFixed(1);
+    const accGap = (c.acc_score - c.peer_acc_score).toFixed(1);
 
     return `
       <article
@@ -280,20 +294,22 @@ function renderCards() {
           <div class="card-actions">
             <button
               type="button"
-              class="card-act-btn ${isPinned ? "act-pinned" : ""}"
+              class="card-icon-btn ${isPinned ? "act-pinned" : ""}"
               onclick="togglePinCase('${c.id}', event)"
               title="${isPinned ? "Unpin card" : "Pin card to front"}"
+              aria-label="${isPinned ? "Unpin card" : "Pin card"}"
             >
-              ${isPinned ? "Pinned" : "Pin"}
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="${isPinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9.5 2.5L13.5 6.5L12 8L9.5 6.5L6.5 9.5L8 12L6.5 13.5L3.5 10.5L1.5 14.5L5.5 12.5L2.5 9.5L4 8L6.5 9.5L9.5 6.5L8 4L9.5 2.5Z"/>
+              </svg>
             </button>
             <button
               type="button"
-              class="card-act-btn act-dismiss"
+              class="card-icon-btn act-dismiss"
               onclick="dismissCase('${c.id}', event)"
               title="Dismiss card"
-            >
-              Dismiss
-            </button>
+              aria-label="Dismiss card"
+            >&times;</button>
           </div>
         </div>
 
@@ -301,8 +317,23 @@ function renderCards() {
         <div class="state">vs. peer ${esc(c.reference)}</div>
 
         <div class="card-hero-row">
-          <div class="score">
-            ${ev.impactScore} <small>/ 100</small>
+          <div class="score-wrap">
+            <div class="score">
+              ${ev.impactScore} <small>/ 100</small>
+            </div>
+            <span
+              class="score-help"
+              tabindex="0"
+              onclick="openScoreJustification('${c.id}', event)"
+              aria-label="What is Impact Score?"
+            >
+              ?
+              <span class="score-tooltip" role="tooltip">
+                <strong>Impact Score (${ev.impactScore}/100)</strong>
+                Combines Peer Divergence Severity (25%), Program-to-Factor Coverage (30%), Local Subsidy Leverage (20%), Feasibility (15%), and Evidence (10%).<br>
+                <em>Click this icon or open the "Impact Score Justification" tab below for the full breakdown.</em>
+              </span>
+            </span>
           </div>
           <span class="badge ${ev.allSolved ? "badge-ok" : "amber"}">
             ${ev.solved}/${ev.total} factors matched
@@ -310,7 +341,7 @@ function renderCards() {
         </div>
 
         <div class="card-rank-scores">
-          Affordability burden: <strong>${c.aff_score}</strong> &middot; Access burden: <strong>${c.acc_score}</strong>
+          Affordability gap: <strong>+${affGap} pts</strong> &middot; Access gap: <strong>+${accGap} pts</strong>
         </div>
 
         <div class="desc">${esc(c.factor_preview)}</div>
@@ -805,15 +836,6 @@ $("sort-select").onchange = e => {
 };
 
 // Filters
-document.querySelectorAll("[data-filter-group='axis'] button").forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll("[data-filter-group='axis'] button").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    filterAxis = btn.dataset.val;
-    renderAll();
-  };
-});
-
 $("filter-urbanicity").onchange = e => {
   filterUrbanicity = e.target.value;
   renderAll();
