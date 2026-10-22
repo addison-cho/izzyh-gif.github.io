@@ -3,34 +3,34 @@
 
 const SCORE_RUBRIC_FACTORS = [
   {
-    key: "gap",
-    name: "Peer Divergence Severity",
-    weight: 25,
-    rule: "Anchored to the percentile burden gap between the target county and its matched peer benchmark."
-  },
-  {
-    key: "coverage",
-    name: "Program-to-Factor Coverage",
-    weight: 30,
-    rule: "Calculated directly from the share of local divergence factors matched to an active institution program."
-  },
-  {
-    key: "leverage",
-    name: "Local Subsidy Leverage",
+    key: "potential",
+    name: "Intervention Potential",
     weight: 20,
-    rule: "Measures whether municipal, county, or state funds exist to co-invest alongside bank capital."
+    rule: "Can the financial institution's actions meaningfully address the identified local barrier?"
+  },
+  {
+    key: "alignment",
+    name: "Toolkit & Program Alignment",
+    weight: 25,
+    rule: "How well does the institution's active program catalog align with the specific barriers that need to be addressed?"
+  },
+  {
+    key: "capacity",
+    name: "Operational Manageability",
+    weight: 20,
+    rule: "Is it manageable for the institution to execute across funding, staffing, and internal risk/compliance approvals?"
   },
   {
     key: "feasibility",
-    name: "Delivery & Execution Feasibility",
-    weight: 15,
-    rule: "Evaluates underwriting readiness, partner CDFI/developer capacity, and regulatory timeline."
+    name: "Implementation & Expansion Feasibility",
+    weight: 20,
+    rule: "How realistic is it to implement or scale the needed programs given the institution's footprint, size, and business goals?"
   },
   {
     key: "evidence",
-    name: "Local Evidence Strength",
-    weight: 10,
-    rule: "Quality of primary municipal Consolidated Plans, HMDA records, and county housing audits."
+    name: "Evidence Strength",
+    weight: 15,
+    rule: "How strong is the documented primary evidence proving this barrier is present in the community?"
   }
 ];
 
@@ -174,17 +174,17 @@ const CASES = [
     factor_preview: "0.58 vs. 1.38 units/LMI · Wildfire stock shock, urban growth boundaries & Prop 13 turnover lock-in",
     summary: "Matched high-income suburban peers (~$103k–$109k median income). Sonoma homes cost 7.57x income ($779k) vs. 3.00x ($327k) in Lake County due to severe starter-supply constraints and post-wildfire insurance pressures.",
     base_ratings: {
-      gap: 4.8,
-      leverage: 4.5,
-      feasibility: 3.4,
-      evidence: 4.2
+      potential: 4.5,
+      capacity: 3.4,
+      feasibility: 3.8,
+      evidence: 4.4
     },
     rubric_notes: {
-      gap: "68.9-point affordability burden gap (97.5 vs. 28.6 in Lake County, IL); home values are 7.57x vs. 3.00x median income.",
-      coverage: "Dynamically scored from the share of Sonoma's 3 divergence factors matched to active programs in your catalog.",
-      leverage: "Strong local leverage via Sonoma's Renewal Enterprise District (RED) infill fund and California HCD matching grants.",
-      feasibility: "Partner-led LIHTC and preservation deals are feasible today; municipal entitlements require experienced local sponsors.",
-      evidence: "Backed by Sonoma County Housing Strategy staff reports and the 2018 Recovery Framework (5,143 homes lost in 2017 fires)."
+      potential: "Project finance and ADU/rehab lending directly address Sonoma's starter-unit deficit (0.58 vs. 1.38 units/LMI), though bank capital cannot independently alter urban growth boundaries.",
+      alignment: "Reflects how many of Sonoma's 3 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Multifamily LIHTC deals require larger capital envelopes and multi-year underwriting timelines; partner CDFI channels help manage staffing load.",
+      feasibility: "Strong alignment with national multifamily and West Coast community development goals; adding a specialized Workforce/ADU product requires standard credit committee sign-off.",
+      evidence: "Backed by Sonoma County Housing Strategy staff reports and the 2018 Recovery Framework (5,143 homes lost in the 2017 fires)."
     },
     sources: ["sonoma", "fire", "capital", "cdb", "hardship"],
     factors: [
@@ -242,17 +242,17 @@ const CASES = [
     factor_preview: "4.04x vs. 2.65x home price-to-income · 0.93 vs. 1.52 units/LMI · Missing small-dollar rehab credit",
     summary: "Mid-sized urban peers (~$67k–$74k median income). Albuquerque's rapid price appreciation pushed home values to 4.04x income ($268.5k) vs. 2.65x ($197.1k) in Rochester/Monroe County, NY.",
     base_ratings: {
-      gap: 4.3,
-      leverage: 4.2,
-      feasibility: 3.8,
-      evidence: 3.9
+      potential: 4.3,
+      capacity: 3.9,
+      feasibility: 4.0,
+      evidence: 4.1
     },
     rubric_notes: {
-      gap: "50.3-point affordability burden gap (72.8 vs. 22.5 in Monroe County, NY) and 39% fewer affordable units per LMI household.",
-      coverage: "Dynamically scored from the share of Bernalillo's 2 divergence factors matched to active programs in your catalog.",
-      leverage: "City of Albuquerque Housing Forward ABQ Fund and New Mexico MFA tax credits provide strong public co-investment.",
-      feasibility: "Nonprofit acquisition-rehab and LIHTC pipelines are well established in Albuquerque.",
-      evidence: "Supported by Albuquerque's Housing Forward strategy and ACS/HMDA peer metrics."
+      potential: "Financing motel conversions, workforce rentals, and sub-$150k casita/starter rehab directly targets Albuquerque's 39% starter-stock deficit.",
+      alignment: "Reflects how many of Bernalillo's 2 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Manageable through established Albuquerque CDFI and nonprofit developer intermediaries without heavy new branch staffing.",
+      feasibility: "Fits Southwest commercial/retail footprint and CRA goals; small-dollar rehab loans require streamlined flat-fee underwriting rules.",
+      evidence: "Supported by the City of Albuquerque's Housing Forward ABQ strategy and ACS/HMDA peer comparisons."
     },
     sources: ["abq", "capital", "cdb", "hardship"],
     factors: [
@@ -300,16 +300,16 @@ const CASES = [
     factor_preview: "0.97 vs. 1.28 units/LMI · +$95k entry price premium & large-lot zoning (low 9.6% denials)",
     summary: "Adjacent Philadelphia metro suburbs (~$105k–$112k median income). Bucks County has a low 9.6% denial rate, proving credit isn't the issue—scarce starter stock (0.97 units/LMI) and a $95k entry price premium block first-time buyers.",
     base_ratings: {
-      gap: 3.9,
-      leverage: 4.3,
-      feasibility: 4.4,
-      evidence: 4.1
+      potential: 4.0,
+      capacity: 4.5,
+      feasibility: 4.6,
+      evidence: 4.3
     },
     rubric_notes: {
-      gap: "25.9-point access burden gap (62.9 vs. 37.0 in Burlington County, NJ) driven by starter inventory scarcity (0.97 vs. 1.28 units/LMI).",
-      coverage: "Dynamically scored from the share of Bucks County's 2 divergence factors matched to active programs in your catalog.",
-      leverage: "Bucks County First-Time Homebuyers Program ($10k loan) and Housing Trust Fund directly stack with bank DPA grants.",
-      feasibility: "High immediate feasibility: Bucks lies within core Mid-Atlantic retail/community banking footprint with existing products.",
+      potential: "Stacking down-payment grants with nonprofit starter-home preservation directly lowers the $95k upfront entry barrier in Bucks County.",
+      alignment: "Reflects how many of Bucks County's 2 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Highly manageable: leverages existing retail mortgage officers, HUD counselors, and standard DPA grant workflows.",
+      feasibility: "Core Mid-Atlantic footprint market with full branch presence and immediate alignment with homeownership access goals.",
       evidence: "Directly documented in the Bucks County 2025–2029 Draft Consolidated Plan (pp. 71, 83, 97–98)."
     },
     sources: ["bucks", "grants", "community", "cdb", "hardship"],
@@ -358,17 +358,17 @@ const CASES = [
     factor_preview: "25.8% vs. 15.2% mortgage denials · Flood/wind insurance DTI shocks & un-retrofitted starter stock",
     summary: "Southern mid-sized peers (~$59k–$68k median income). Home prices are moderate (3.46x income), but Lafayette's purchase mortgage denial rate is 25.8% vs. 15.2% in El Paso due to flood/wind insurance DTI spikes and rehab funding gaps.",
     base_ratings: {
-      gap: 4.4,
-      leverage: 4.5,
-      feasibility: 3.6,
-      evidence: 3.4
+      potential: 4.4,
+      capacity: 4.1,
+      feasibility: 3.7,
+      evidence: 3.6
     },
     rubric_notes: {
-      gap: "28.5-point access burden gap (59.1 vs. 30.6 in El Paso County, TX) and a +10.6 percentage point surge in purchase mortgage denials (25.8% vs. 15.2%).",
-      coverage: "Dynamically scored from the share of Lafayette's 2 divergence factors matched to active programs in your catalog.",
-      leverage: "High leverage via the $10,000 Louisiana Fortified Homes Roof Grant and LCG HOME Owner-Occupied Rehab funds.",
-      feasibility: "Credit-readiness counseling and CDFI rehab partnerships are immediately deployable; roof-grant bridge loans require specialized closing rules.",
-      evidence: "Grounded in Lafayette's 2023–27 Consolidated Plan (p. 78) and Parish Hazard Mitigation Plan; HMDA denial reasons warrant diagnostic review."
+      potential: "Bridging state Fortified Roof grants at closing and funding starter rehab directly addresses insurance-driven DTI denials (25.8% vs. 15.2% in El Paso).",
+      alignment: "Reflects how many of Lafayette's 2 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Bounded diagnostic, counseling, and rehab credit partnerships require modest capital and staffing compared to ground-up construction.",
+      feasibility: "CDFI rehab credit is ready today; a Fortified-Roof bridge loan requires compliance and secondary-market underwriting review.",
+      evidence: "Grounded in Lafayette's 2023–27 Consolidated Plan (p. 78) and Parish Hazard Mitigation Plan."
     },
     sources: ["lafayette", "flood", "cdb", "community", "hardship", "grants"],
     factors: [
@@ -416,16 +416,16 @@ const CASES = [
     factor_preview: "5.95x vs. 2.76x price-to-income ($685k vs. $298k) · 804-day multifamily permit delay",
     summary: "High-income metro suburbs (~$108k–$115k median income) where Snohomish multifamily housing permits averaged 804 calendar days vs. ~110 days in Will County, driving severe price divergence.",
     base_ratings: {
-      gap: 4.7,
-      leverage: 4.1,
-      feasibility: 3.3,
-      evidence: 4.0
+      potential: 4.3,
+      capacity: 3.5,
+      feasibility: 3.6,
+      evidence: 4.2
     },
     rubric_notes: {
-      gap: "69.7-point affordability burden gap (88.2 vs. 18.5 in Will County, IL); median homes cost $685k vs. $298k.",
-      coverage: "Dynamically scored from the share of Snohomish's divergence factors matched to active programs in your catalog.",
-      leverage: "Washington CHIP municipal utility connection fee waivers and Snohomish Housing Trust Fund provide strong public co-investment.",
-      feasibility: "Bridge financing is feasible through CDFI partners, though multi-year municipal permitting slows unit delivery.",
+      potential: "Pre-development bridge credit and LIHTC debt help offset carrying costs from Snohomish's 804-day multifamily permitting cycle.",
+      alignment: "Reflects how many of Snohomish's 2 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Requires longer credit horizon (24+ months) to accommodate municipal entitlement review timelines.",
+      feasibility: "Strong fit for national Multifamily Capital along Puget Sound transit corridors.",
       evidence: "Documented in 2024 Snohomish County PDS permitting audits (804 calendar days / 395 active review days)."
     },
     sources: ["capital", "cdb", "grants"],
@@ -472,16 +472,16 @@ const CASES = [
     factor_preview: "0.71 vs. 1.31 units/LMI · Legacy 1% annual residential permit growth cap & $182k price gap",
     summary: "Affluent Denver and Austin suburbs (~$109k median income). Jefferson County's decades-long 1% annual residential permit cap restricted starter townhome supply compared to Williamson County's rapid buildout.",
     base_ratings: {
-      gap: 4.2,
-      leverage: 4.0,
-      feasibility: 3.7,
-      evidence: 3.8
+      potential: 4.2,
+      capacity: 4.0,
+      feasibility: 4.1,
+      evidence: 3.9
     },
     rubric_notes: {
-      gap: "30.4-point access burden gap (66.8 vs. 36.4 in Williamson County, TX) and 46% fewer affordable units per LMI household.",
-      coverage: "Dynamically scored from the share of Jefferson County's 2 divergence factors matched to active programs in your catalog.",
-      leverage: "Colorado Proposition 123 land-banking grants and CHFA FirstStep DPA provide strong state co-investment.",
-      feasibility: "High readiness for LIHTC transit-oriented development and retail DPA stacking.",
+      potential: "LIHTC debt and retail down-payment grants directly expand starter options in a suburb constrained by legacy 1% annual permit caps.",
+      alignment: "Reflects how many of Jefferson County's 2 local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Manageable through existing Colorado retail mortgage and multifamily origination teams.",
+      feasibility: "Strong Denver metro commercial and retail banking presence supports immediate deployment.",
       evidence: "Documented in Colorado Prop 123 municipal baseline filings and county housing needs assessments."
     },
     sources: ["capital", "grants", "community"],
@@ -528,16 +528,16 @@ const CASES = [
     factor_preview: "4.47x vs. 3.25x price-to-income · Single-family zoning around UF campus vs. UIUC upzoned corridors",
     summary: "Flagship university counties (UF Gainesville vs. UIUC Champaign, ~$60k–$63k median income) grouped into a dedicated College Town pool so off-campus student rental demand is compared against true academic peers.",
     base_ratings: {
-      gap: 4.1,
-      leverage: 3.9,
-      feasibility: 3.6,
-      evidence: 3.7
+      potential: 4.0,
+      capacity: 3.8,
+      feasibility: 3.7,
+      evidence: 3.8
     },
     rubric_notes: {
-      gap: "35.2-point affordability burden gap (86.0 vs. 50.8 in Champaign County, IL) and 0.76 vs. 1.33 affordable units/LMI.",
-      coverage: "Dynamically scored from the share of Alachua's divergence factors matched to active programs in your catalog.",
-      leverage: "Florida SHIP (State Housing Initiatives Partnership) provides reliable county-level infill and DPA funds.",
-      feasibility: "Strong LIHTC and workforce multifamily demand from university and hospital employees.",
+      potential: "Financing non-student workforce apartments helps relieve pressure around Gainesville's single-family-zoned university core.",
+      alignment: "Reflects how many of Alachua's local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Standard LIHTC + Florida SHIP structure is straightforward for multifamily teams to underwrite.",
+      feasibility: "Strong healthcare and university anchor employers support stable workforce rental demand.",
       evidence: "Supported by Gainesville/Alachua consolidated housing plans and university corridor zoning comparisons."
     },
     sources: ["capital", "cdb", "grants"],
@@ -573,16 +573,16 @@ const CASES = [
     factor_preview: "4.40x vs. 2.49x price-to-income · Coastal second-home & short-term rental conversion of local stock",
     summary: "Rural recreational and coastal counties (~$63k median income) benchmarked within the Vacation & Resort town pool to isolate second-home and short-term rental price pressure.",
     base_ratings: {
-      gap: 4.5,
-      leverage: 3.8,
+      potential: 3.9,
+      capacity: 3.4,
       feasibility: 3.2,
-      evidence: 3.6
+      evidence: 3.7
     },
     rubric_notes: {
-      gap: "61.9-point affordability burden gap (76.2 vs. 14.3 in Fulton County, NY); median homes cost $279.5k vs. $156.1k.",
-      coverage: "Dynamically scored from the share of Grays Harbor's divergence factors matched to active programs in your catalog.",
-      leverage: "WA Dept. of Commerce Housing Trust Fund supports deed-restricted rural workforce housing.",
-      feasibility: "Rural sponsor capacity is more limited; requires regional CDFI intermediaries.",
+      potential: "CDFI credit for community land trusts preserves year-round workforce stock against coastal vacation-rental conversion.",
+      alignment: "Reflects how many of Grays Harbor's local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Requires partnering with a regional CDFI intermediary because local rural developer capacity is thin.",
+      feasibility: "Limited direct rural branch footprint means execution relies on wholesale CDFI credit lines.",
       evidence: "Supported by WA Commerce rural housing audits and ACS seasonal vacancy records."
     },
     sources: ["cdb", "capital"],
@@ -618,16 +618,16 @@ const CASES = [
     factor_preview: "4.45x vs. 3.12x price-to-income · Agricultural worker housing shortage & water/permitting limits",
     summary: "Agricultural and energy-producing counties (~153k–171k population) benchmarked together to control for commodity employment cycles.",
     base_ratings: {
-      gap: 4.1,
-      leverage: 4.2,
-      feasibility: 3.4,
-      evidence: 3.8
+      potential: 4.1,
+      capacity: 3.6,
+      feasibility: 3.5,
+      evidence: 3.9
     },
     rubric_notes: {
-      gap: "42.1-point affordability burden gap (81.8 vs. 39.7 in Midland County, TX) and 0.88 vs. 1.26 affordable units/LMI.",
-      coverage: "Dynamically scored from the share of Kings County's divergence factors matched to active programs in your catalog.",
-      leverage: "California HCD Joe Serna, Jr. Farmworker Housing Grant (FWHG) provides high-leverage public subsidy.",
-      feasibility: "Well-suited for 9% LIHTC + FWHG co-investment with Central Valley nonprofit developers.",
+      potential: "Pairing LIHTC debt with California's Farmworker Housing Grant directly builds permanent affordable family units.",
+      alignment: "Reflects how many of Kings County's local divergence barriers are directly matched by active programs in your catalog.",
+      capacity: "Manageable through experienced Central Valley nonprofit housing sponsors.",
+      feasibility: "High CRA impact in California's Central Valley, subject to local water/infrastructure approvals.",
       evidence: "Backed by California HCD regional housing needs determinations and ACS/HMDA records."
     },
     sources: ["capital", "cdb"],

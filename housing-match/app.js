@@ -41,13 +41,13 @@ function evaluateCase(c) {
   const total = results.length;
   const coverageRatio = total > 0 ? solved / total : 0;
 
-  // Consistent, auditable 1-5 rating for Program-to-Factor Coverage
-  const coverageRating = Number((1.0 + 4.0 * coverageRatio).toFixed(1));
+  // Consistent, auditable 1-5 rating for Toolkit & Program Alignment
+  const alignmentRating = Number((1.0 + 4.0 * coverageRatio).toFixed(1));
 
   const ratings = {
-    gap: c.base_ratings.gap,
-    coverage: coverageRating,
-    leverage: c.base_ratings.leverage,
+    potential: c.base_ratings.potential,
+    alignment: alignmentRating,
+    capacity: c.base_ratings.capacity,
     feasibility: c.base_ratings.feasibility,
     evidence: c.base_ratings.evidence
   };
@@ -317,23 +317,17 @@ function renderCards() {
         <div class="state">vs. peer ${esc(c.reference)}</div>
 
         <div class="card-hero-row">
-          <div class="score-wrap">
-            <div class="score">
-              ${ev.impactScore} <small>/ 100</small>
-            </div>
-            <span
-              class="score-help"
-              tabindex="0"
-              onclick="openScoreJustification('${c.id}', event)"
-              aria-label="What is Impact Score?"
-            >
-              ?
-              <span class="score-tooltip" role="tooltip">
-                <strong>Impact Score (${ev.impactScore}/100)</strong>
-                Combines Peer Divergence Severity (25%), Program-to-Factor Coverage (30%), Local Subsidy Leverage (20%), Feasibility (15%), and Evidence (10%).<br>
-                <em>Click this icon or open the "Impact Score Justification" tab below for the full breakdown.</em>
-              </span>
-            </span>
+          <div class="score">
+            ${ev.impactScore}
+            <small>
+              / 100
+              <span
+                class="score-help"
+                tabindex="0"
+                onclick="openScoreJustification('${c.id}', event)"
+                aria-label="What is Impact Score?"
+              >?<span class="score-tooltip" role="tooltip">This score represents how well your programs match the most significant divergence factors. Click for more details.</span></span>
+            </small>
           </div>
           <span class="badge ${ev.allSolved ? "badge-ok" : "amber"}">
             ${ev.solved}/${ev.total} factors matched
@@ -505,8 +499,8 @@ function renderDetail() {
 
           ${SCORE_RUBRIC_FACTORS.map(rf => {
             const val = ev.ratings[rf.key];
-            const note = rf.key === "coverage"
-              ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program (${Math.round((ev.solved / ev.total) * 100)}% coverage). ${c.rubric_notes.coverage}`
+            const note = rf.key === "alignment"
+              ? `${ev.solved} of ${ev.total} identified local divergence factors are matched to an active program (${Math.round((ev.solved / ev.total) * 100)}% matched). ${c.rubric_notes.alignment}`
               : c.rubric_notes[rf.key];
 
             return `
@@ -515,6 +509,7 @@ function renderDetail() {
                   <span>${esc(rf.name)}</span>
                   <strong>${val.toFixed(1)} / 5.0 &middot; weight ${rf.weight}%</strong>
                 </div>
+                <div class="factor-rule">${esc(rf.rule)}</div>
                 <div class="track"><i style="width:${val * 20}%"></i></div>
                 <p>${esc(note)}</p>
               </div>
@@ -525,15 +520,16 @@ function renderDetail() {
         <div>
           <div class="callout">
             <strong>Impact Score: ${ev.impactScore} / 100 (${ev.solved}/${ev.total} factors matched)</strong><br>
-            Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Program-to-Factor Coverage (30% weight)</strong> and recalculates the Impact Score.
+            Adding or enabling a program that solves an unmatched divergence factor automatically updates <strong>Toolkit &amp; Program Alignment (25% weight)</strong> and recalculates the Impact Score.
           </div>
 
-          <h3>Consistent Scoring Framework</h3>
+          <h3>How Each Dimension Is Evaluated</h3>
           <ul class="list">
-            <li><strong>Peer Divergence Severity (25%):</strong> Anchored to empirical percentile gaps between target and benchmark counties.</li>
-            <li><strong>Program-to-Factor Coverage (30%):</strong> Formula: <code>1.0 + 4.0 &times; (Matched Factors / Total Factors)</code>.</li>
-            <li><strong>Local Subsidy Leverage (20%):</strong> Anchored to verified municipal/state matching funds.</li>
-            <li><strong>Delivery Feasibility (15%) &amp; Evidence Strength (10%):</strong> Grounded in local HUD Consolidated Plans and partner readiness.</li>
+            <li><strong>1. Intervention Potential (20%):</strong> Can the financial institution's actions meaningfully address the barrier?</li>
+            <li><strong>2. Toolkit &amp; Program Alignment (25%):</strong> How well does the institution's toolkit align with the barrier that needs to be directly addressed?</li>
+            <li><strong>3. Operational Manageability (20%):</strong> Is it manageable for the institution to execute across funding, staffing, and approvals?</li>
+            <li><strong>4. Implementation &amp; Expansion Feasibility (20%):</strong> How realistic is it to implement new or expanded programs based on location, size, and business goals?</li>
+            <li><strong>5. Evidence Strength (15%):</strong> How strong is the documented evidence of the barrier being present?</li>
           </ul>
 
           <h3>Primary Evidence &amp; Sources</h3>
